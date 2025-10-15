@@ -399,10 +399,12 @@
             .attr('y', histInnerH)
             .attr('width', d => Math.max(0, histX(d.x1) - histX(d.x0) - 1))
             .attr('height', 0)
-            .attr('fill', color(attr))
             .attr('rx', 2)
             .merge(bars)
             .transition().duration(500)
+            // FIX: Set fill color on the merged (enter + update) selection
+            // This ensures the color updates when changing attributes.
+            .attr('fill', color(attr))
             .attr('x', d => histX(d.x0))
             .attr('y', d => histY(d.length))
             .attr('width', d => Math.max(0, histX(d.x1) - histX(d.x0) - 1))
@@ -473,7 +475,16 @@
             const tip = [
                 'Data loading failed:',
                 err.message,
-                ].join('\n');
+                '',
+                'Common reasons:',
+                '1) Opening the HTML file directly using file:// protocol (browsers block local file XHR requests).',
+                '   Solution: Start a local server in the project\'s root directory, for example:',
+                '   - Python:  python -m http.server 8000',
+                '   - Node:    npx http-server -p 8000',
+                '   Then access it via http://localhost:8000.',
+                `2) Incorrect path: Ensure that ${DEFAULT_PATH} exists relative to index.html, or correct the path.`,
+                '3) Mismatched CSV delimiter/column names: This code is already compatible with comma/semicolon delimiters and common column name aliases (including "Name of Exercise").'
+            ].join('\n');
             app.append('pre')
                 .style('white-space', 'pre-wrap')
                 .style('color', 'tomato')
