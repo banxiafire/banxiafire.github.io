@@ -1,0 +1,177 @@
+/* === Theme tokens === */
+:root {
+  --card: #fff;
+  --ink: #111;
+  --muted: #666;
+  --line: #eaeaea;
+  --bg: #fafafa;
+}
+
+/* === Base === */
+* { font-family: 'Georgia', sans-serif; }
+
+body {
+  margin: 0;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* === Layout cards & grid === */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+  margin-bottom: 12px;
+}
+
+.panel-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "filters height"
+    "agg     weight"
+    "hist    hist";
+  gap: 16px;
+  max-width: 980px;
+  margin: 0 auto 16px;
+}
+
+.grid-filters { grid-area: filters; }
+.grid-height  { grid-area: height; }
+.grid-agg     { grid-area: agg; }
+.grid-weight  { grid-area: weight; }
+.grid-hist    { grid-area: hist; } /* container for donut/hist cards */
+
+/* === Controls === */
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+label { font-size: 12px; color: var(--muted); }
+
+select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+
+button {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
+
+button[disabled] { opacity: .5; cursor: not-allowed; }
+
+.pill {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: #333;
+}
+
+.hidden { display: none; }
+
+/* === Tooltip === */
+#tooltip {
+  position: fixed;
+  pointer-events: none;
+  transform: translate(-50%, -120%);
+  background: rgba(0, 0, 0, .8);
+  color: white;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+
+/* === Chart text === */
+.center-text {
+  font-size: 14px;
+  fill: #444;
+  text-anchor: middle;
+}
+
+.slice-label {
+  font-size: 16px;
+  fill: white;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+/* === Axes === */
+.axis-label { font-size: 12px; fill: #444; }
+.axis-title { font-size: 14px; font-weight: 600; fill: #222; }
+
+svg .domain,
+svg .tick line { shape-rendering: crispEdges; }
+
+.tick text { font-size: 11px; fill: #666; }
+
+/* === Brush styling === */
+.brush .selection {
+  fill: #3A0CA3;
+  fill-opacity: 0.18;
+  stroke: #3A0CA3;
+}
+.brush .handle {
+  fill: #3A0CA3;
+  fill-opacity: 0.9;
+  cursor: ew-resize;
+}
+.brush .overlay { cursor: grab; }
+.track {
+  stroke: #ccc;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+/* === JS-created controls (moved from inline styles) === */
+.agg-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 8px 0 16px;
+}
+.agg-label { font-size: 12px; color: var(--muted); }
+.agg-select {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fff;
+}
+.agg-checkbox-wrap {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* === Helpers === */
+.vis { width: 100%; max-width: 980px; margin: 0 auto; }
+.viz-root { width: 100%; overflow: visible; }
+
+/* === Minor layout tweaks === */
+#genderSelect { margin-top: 8px; }
+#aggPanelBtns { justify-content: flex-end; gap: 8px; margin-top: 12px; }
