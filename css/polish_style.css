@@ -24,6 +24,14 @@ h1 {
   text-align: center;
 }
 
+.description {
+  max-width: 980px;
+  margin: 0 auto 20px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 /* === Layout cards & grid === */
 .card {
   background: var(--card);
