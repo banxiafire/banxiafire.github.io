@@ -1,494 +1,518 @@
-(function () {
-    const APP_ID = 'app';
-    const DEFAULT_PATH = 'data/Final_data.csv';
+const WIDTH = 980, HEIGHT = 520;
+const MARGIN = { top: 14, right: 26, bottom: 56, left: 70 }; // space for axis titles
 
-    // color scale
-    const color = d3.scaleOrdinal()
-        .domain(['Carbs', 'Proteins', 'Fats'])
-        .range(['#4e79a7', '#59a14f', '#e15759']);
+const DUR = { arc: 450, fade: 250, zoom: 200, swap: 220, bars: 450, axes: 200, snap: 80 };
+const EASE = { main: d3.easeCubicOut, io: d3.easeCubicInOut };
 
-    // dimensions
-    const width = 760, height = 420, donutOuter = 150, donutInner = 85;
-    const histWidth = 760, histHeight = 360, margin = { top: 36, right: 24, bottom: 52, left: 64 };
+const LIVE_PREVIEW = false;
+const LIVE_PREVIEW_MS = 80;
 
-    // attribute aliases
-    const ALIAS = {
-        height: ['Height(m)', 'Height (m)'],
-        weight: ['Weight(kg)', 'Weight (kg)'],
-        carbs: ['Carbs'],
-        proteins: ['Proteins'],
-        fats: ['Fats'],
-        calories: ['Calories'],
-        sport: ['Name of Exercise', 'Sport', 'Exercise'],
-        gender: ['Gender']
-    };
+const ATTRS = ["Carbs", "Proteins", "Fats"];
+const COLOR = d3.scaleOrdinal()
+  .domain(ATTRS)
+  .range(["#4895EF", "#3A0CA3", "#F72585"]);
 
-    // Main container
-    let app = d3.select(`#${APP_ID}`);
-    if (app.empty()) app = d3.select('body').append('div').attr('id', APP_ID);
+const ALIAS = new Map([
+  ["Height(m)", "Height(m)"], ["Height (m)", "Height(m)"], ["height", "Height(m)"],
+  ["Weight(kg)", "Weight(kg)"], ["Weight (kg)", "Weight(kg)"], ["weight", "Weight(kg)"],
+  ["Carbs", "Carbs"], ["carbohydrates", "Carbs"], ["carb", "Carbs"],
+  ["Proteins", "Proteins"], ["protein", "Proteins"],
+  ["Fats", "Fats"], ["fat", "Fats"],
+  ["Calories", "Calories"], ["kcal", "Calories"],
+  ["Sport", "Sport"], ["Name of Exercise", "Sport"],
+  ["Gender", "Gender"], ["Sex", "Gender"]
+]);
 
-    // Layout containers
-    const controls = app.append('div').attr('class', 'controls')
-        .style('display', 'grid')
-        .style('grid-template-columns', '1fr 1fr')
-        .style('gap', '12px')
-        .style('align-items', 'center')
-        .style('margin', '12px 0 8px');
+const CANDIDATE_PATHS = [
+  "Final_data.csv",
+  "meal_metadata.csv",
+  "data/Final_data.csv",
+  "data/meal_metadata.csv"
+];
 
-    const ranges = controls.append('div').style('display', 'grid')
-        .style('grid-template-columns', '1fr')
-        .style('gap', '10px');
+// Create (or return existing) SVG under a root element
+function ensureSvg(rootSelector, { width, height, ariaLabel, id }) {
+  const root = d3.select(rootSelector);
+  let svg = root.select("svg");
+  if (svg.empty()) {
+    svg = root.append("svg");
+  }
+  svg.attr("width", width).attr("height", height);
+  if (ariaLabel) svg.attr("aria-label", ariaLabel);
+  if (id) svg.attr("id", id);
+  return svg;
+}
 
-    const selects = controls.append('div').style('display', 'grid')
-        .style('grid-template-columns', '1fr 1fr')
-        .style('gap', '10px');
+function ensureAggControls() {
+  let agg = document.getElementById("aggMode");
+  let pct = document.getElementById("showPerc");
+  if (!agg || !pct) {
+    const container = document.createElement("div");
+    container.className = "agg-controls";
 
-    const vizWrap = app.append('div').attr('id', 'viz-wrap')
-        .style('display', 'grid')
-        .style('grid-template-columns', '1fr')
-        .style('gap', '16px');
+    const aggLabel = document.createElement("label");
+    aggLabel.className = "agg-label";
+    aggLabel.textContent = "Aggregation";
 
-    // Card: Donut Chart
-    const chartCard = vizWrap.append('div')
-        .style('border', '1px solid #333')
-        .style('border-radius', '12px')
-        .style('padding', '10px');
+    agg = document.createElement("select");
+    agg.id = "aggMode";
+    agg.className = "agg-select";
+    agg.innerHTML = `<option value="mean" selected>Mean</option><option value="median">Median</option>`;
 
-    const chartHeader = chartCard.append('div')
-        .style('display', 'flex')
-        .style('align-items', 'center')
-        .style('justify-content', 'space-between')
-        .style('gap', '10px');
+    const pctWrap = document.createElement("label");
+    pctWrap.className = "agg-checkbox-wrap";
+    pct = document.createElement("input");
+    pct.type = "checkbox";
+    pct.id = "showPerc";
+    pctWrap.appendChild(pct);
+    pctWrap.appendChild(document.createTextNode("Show % on slices"));
 
-    chartHeader.append('h3').text('Average Macros (by filters)').style('margin', '6px 0');
+    container.appendChild(aggLabel);
+    container.appendChild(agg);
+    container.appendChild(pctWrap);
 
-    const backBtn = chartHeader.append('button')
-        .text('Back to Donut Chart')
-        .attr('disabled', true)
-        .style('padding', '6px 10px')
-        .on('click', () => {
-            backBtn.attr('disabled', true);
-            state.mode = 'donut';
-            state.histAttr = null;
-            update();
-        });
-
-    const chart = chartCard.append('div').attr('id', 'chart');
-
-    // Card: Histogram
-    const histCard = vizWrap.append('div')
-        .style('border', '1px solid #333')
-        .style('border-radius', '12px')
-        .style('padding', '10px');
-
-    histCard.append('h3').text('Distribution (Histogram)').style('margin', '6px 0');
-    const histogramWrap = histCard.append('div').attr('id', 'histogram');
-
-    // Utility functions
-    const roundInt = v => (Number.isFinite(v) ? Math.round(v) : 0);
-    const snapToStep = (v, step, [min, max]) => {
-        const s = Math.round(v / step) * step;
-        return Math.max(min, Math.min(max, s));
-    };
-    const pickFirst = (obj, keys) => {
-        for (const k of keys) {
-            if (obj[k] !== undefined && obj[k] !== '') return obj[k];
-        }
-        return undefined;
-    };
-    const toNumber = v => {
-        if (v === null || v === undefined) return NaN;
-        const x = +(`${v}`.toString().replace(',', '.')); // support decimal commas
-        return Number.isFinite(x) ? x : NaN;
-    };
-
-    function cleanRow(row) {
-        const r = {};
-        for (const k in row) r[k.trim()] = row[k];
-
-        return {
-            'Height(m)': toNumber(pickFirst(r, ALIAS.height)),
-            'Weight(kg)': toNumber(pickFirst(r, ALIAS.weight)),
-            'Carbs': toNumber(pickFirst(r, ALIAS.carbs)),
-            'Proteins': toNumber(pickFirst(r, ALIAS.proteins)),
-            'Fats': toNumber(pickFirst(r, ALIAS.fats)),
-            'Calories': toNumber(pickFirst(r, ALIAS.calories)),
-            'Sport': pickFirst(r, ALIAS.sport),
-            'Gender': pickFirst(r, ALIAS.gender)
-        };
+    const target = document.getElementById("aggPanel");
+    if (target) { target.appendChild(container); }
+    else {
+      const app = document.getElementById("app");
+      if (app && app.parentNode) app.parentNode.insertBefore(container, app);
+      else document.body.insertBefore(container, document.body.firstChild);
     }
+  }
+  return { agg, pct };
+}
 
-    function parseTextToRows(text) {
-        const hasComma = text.includes(',');
-        const hasSemi = text.includes(';');
-        if (hasComma && !hasSemi) return d3.csvParse(text, cleanRow);
-        if (!hasComma && hasSemi) return d3.dsvFormat(';').parse(text, cleanRow);
-        // If both or neither exist, default to comma
-        return d3.csvParse(text, cleanRow);
+// ---------- Utils ----------
+function throttle(ms, fn) {
+  let last = 0, timer = null, queuedArgs = null;
+  return (...args) => {
+    const now = performance.now();
+    const invoke = () => { last = performance.now(); timer = null; fn(...(queuedArgs || args)); queuedArgs = null; };
+    if (now - last >= ms) invoke();
+    else { queuedArgs = args; if (!timer) timer = setTimeout(invoke, ms - (now - last)); }
+  };
+}
+
+// Data helpers
+const toNumber = (v) => {
+  if (v == null || v === "") return NaN;
+  if (typeof v === "number") return v;
+  return +String(v).replace(",", ".");
+};
+
+function normalizeRow(row, headerMap) {
+  const get = (k) => row[headerMap.get(k)];
+  return {
+    height: toNumber(get("Height(m)")),
+    weight: toNumber(get("Weight(kg)")),
+    Carbs: toNumber(get("Carbs")),
+    Proteins: toNumber(get("Proteins")),
+    Fats: toNumber(get("Fats")),
+    Calories: toNumber(get("Calories")),
+    Sport: get("Sport") ?? "",
+    Gender: get("Gender") ?? ""
+  };
+}
+
+function buildHeaderMap(columns) {
+  const map = new Map();
+  for (const col of columns) {
+    const canon = ALIAS.get(col) || ALIAS.get(col.trim()) || col;
+    if (!map.has(canon)) map.set(canon, col);
+  }
+  for (const key of ["Height(m)", "Weight(kg)", "Carbs", "Proteins", "Fats", "Calories", "Sport", "Gender"]) {
+    if (!map.has(key)) map.set(key, key);
+  }
+  return map;
+}
+
+async function loadFirstAvailable(paths) {
+  let lastErr = null;
+  for (const p of paths) {
+    try {
+      const text = await d3.text(p);
+      const parsed = d3.csvParse(text);
+      const headerMap = buildHeaderMap(parsed.columns);
+      const cleaned = parsed.map((row) => normalizeRow(row, headerMap))
+        .filter(d => !(isNaN(d.Carbs) && isNaN(d.Proteins) && isNaN(d.Fats)));
+      if (cleaned.length > 0) return cleaned;
+    } catch (e) {
+      lastErr = e;
     }
+  }
+  throw new Error(`Could not load any CSV from:\n${paths.join("\n")}\n\n${lastErr ? lastErr.message : ""}\nTip: serve files via a local server (e.g., "python -m http.server").`);
+}
 
-    const CANDIDATE_PATHS = [
-        DEFAULT_PATH,
-        './data/meal_metadata.csv',
-        'meal_metadata.csv',
-        './meal_metadata.csv'
-    ];
+// ---------- State & UI ----------
+const ui = {
+  sport: d3.select("#sportSelect"),
+  gender: d3.select("#genderSelect"),
+  hVal: d3.select("#heightVal"),
+  wVal: d3.select("#weightVal"),
+  back: d3.select("#backBtn"),
+  reset: d3.select("#resetBtn"),
+    hSvg: null,
+  wSvg: null,
+  aggSel: null,
+  showPerc: null
+};
 
-    async function loadData(paths) {
-        const errors = [];
-        for (const p of paths) {
-            try {
-                const txt = await d3.text(p);
-                const rows = parseTextToRows(txt);
-                if (!rows || !rows.length) throw new Error('File is empty or contains no valid data');
-                return rows;
-            } catch (e) {
-                errors.push(`${p} -> ${e.message}`);
-            }
-        }
-        throw new Error('All candidate paths failed:\n' + errors.join('\n'));
-    }
+const state = {
+  raw: [],
+  filtered: [],
+  mode: "donut",
+  histAttr: null,
+  transitioning: false,
+  sport: "All",
+  gender: "All",
+  hMin: null, hMax: null,
+  wMin: null, wMax: null,
+  domain: { h: [1.2, 2.2], w: [40, 140] },
+  xScales: {},
+  binGens: {},
+  agg: "mean",
+  showPerc: false
+};
 
-    // Brush Slider with step-snapping — Fix for recursive stack overflow: only snap back on user-triggered 'end' events
-    function createBrushSlider(container, { title, domain, step, width = 720, height = 60, onChange }) {
-        const wrap = container.append('div').style('display', 'grid').style('gap', '4px');
-        const labelRow = wrap.append('div').style('display', 'flex').style('justify-content', 'space-between');
-        labelRow.append('div').text(title);
-        const valLabel = labelRow.append('div').text('');
+// Filtering
+function applyFilters() {
+  const s = state;
+  let out = s.raw;
+  if (s.sport !== "All") out = out.filter(d => d.Sport === s.sport);
+  if (s.gender !== "All") out = out.filter(d => d.Gender === s.gender);
+  out = out.filter(d =>
+    (isNaN(d.height) || (d.height >= s.hMin && d.height <= s.hMax)) &&
+    (isNaN(d.weight) || (d.weight >= s.wMin && d.weight <= s.wMax))
+  );
+  state.filtered = out;
+}
+function updateFilterPills() {
+  ui.hVal && ui.hVal.text(`${(+state.hMin).toFixed(2)}–${(+state.hMax).toFixed(2)}`);
+  ui.wVal && ui.wVal.text(`${Math.round(state.wMin)}–${Math.round(state.wMax)}`);
+}
 
-        const svg = wrap.append('svg').attr('width', width).attr('height', height);
-        const padding = { left: 12, right: 12 };
-        const x = d3.scaleLinear().domain(domain).range([padding.left, width - padding.right]);
+// Aggregation
+function mean(arr, key) { return d3.mean(arr, d => d[key]); }
+function median(arr, key) { return d3.median(arr.map(d => d[key]).filter(v => !isNaN(v))); }
+function aggregate(arr, key, mode) { return mode === "median" ? median(arr, key) : mean(arr, key); }
 
-        svg.append('g')
-            .attr('transform', `translate(0, ${height - 18})`)
-            .call(d3.axisBottom(x).ticks(6));
+// Tooltip
+const tip = d3.select("body").append("div").attr("id", "tooltip");
+function showTip(html, [x, y]) { tip.html(html).style("left", x + "px").style("top", y + "px").style("opacity", 1); }
+function hideTip() { tip.style("opacity", 0); }
 
-        svg.append('rect')
-            .attr('x', x.range()[0])
-            .attr('y', 16)
-            .attr('width', x.range()[1] - x.range()[0])
-            .attr('height', 12)
-            .attr('fill', '#2a2a2a')
-            .attr('rx', 6);
+// === Create SVGs dynamically ===
+ui.hSvg = ensureSvg("#heightBrushRoot", { width: 600, height: 84, ariaLabel: "Height scale", id: "heightBrush" });
+ui.wSvg = ensureSvg("#weightBrushRoot", { width: 600, height: 84, ariaLabel: "Weight scale", id: "weightBrush" });
+const donutSvg = ensureSvg("#donutRoot", { width: WIDTH, height: HEIGHT, ariaLabel: "Donut chart", id: "donut" });
+const histSvg = ensureSvg("#histRoot", { width: WIDTH, height: HEIGHT, ariaLabel: "Histogram", id: "hist" });
 
-        const brush = d3.brushX()
-            .extent([[x.range()[0], 10], [x.range()[1], 38]])
-            .on('brush end', brushed);
+// Donut
+const donutG = donutSvg.append("g").attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 + 16}) scale(1)`);
 
-        const gBrush = svg.append('g').attr('class', 'brush').call(brush);
-        gBrush.call(brush.move, x.range()); // Initially select the entire range
+const donutInner = 100, donutOuter = 175;
+const arc = d3.arc().innerRadius(donutInner).outerRadius(donutOuter).padAngle(0.02).cornerRadius(8);
+const pie = d3.pie().sort(null).value(d => d.value);
 
-        function brushed(event) {
-            const { selection, type, sourceEvent } = event;
-            if (!selection) return;
-            const [x0, x1] = selection.map(x.invert);
-            const v0 = snapToStep(x0, step, domain);
-            const v1 = snapToStep(x1, step, domain);
-            valLabel.text(`${v0.toFixed(step < 1 ? 2 : 0)} – ${v1.toFixed(step < 1 ? 2 : 0)}`);
+const centerG = donutG.append("g");
+const centerTitle = centerG.append("text").attr("class", "center-text").attr("y", -6);
+const centerValue = centerG.append("text").attr("class", "center-text").attr("y", 16);
 
-            // Only snap the brush on 'end' events triggered by user interaction to avoid stack overflow from programmatic 'move' events.
-            if (type === 'end' && sourceEvent) {
-                gBrush.call(brush.move, [x(v0), x(v1)]);
-            }
-            onChange && onChange([v0, v1]);
-        }
+function renderDonut() {
+  const data = state.filtered;
+  const carbsMean = mean(data, "Carbs") ?? 0, carbsMedian = median(data, "Carbs") ?? 0;
+  const protMean = mean(data, "Proteins") ?? 0, protMedian = median(data, "Proteins") ?? 0;
+  const fatMean = mean(data, "Fats") ?? 0, fatMedian = median(data, "Fats") ?? 0;
 
-        return {
-            setRange(min, max) {
-                const v0 = snapToStep(min, step, domain);
-                const v1 = snapToStep(max, step, domain);
-                valLabel.text(`${v0.toFixed(step < 1 ? 2 : 0)} – ${v1.toFixed(step < 1 ? 2 : 0)}`);
-                gBrush.call(brush.move, [x(v0), x(v1)]);
-            }
-        };
-    }
+  const aggVal = (k) => aggregate(data, k, state.agg) ?? 0;
+  const stats = [
+    { key: "Carbs", value: aggVal("Carbs"), mean: carbsMean, median: carbsMedian },
+    { key: "Proteins", value: aggVal("Proteins"), mean: protMean, median: protMedian },
+    { key: "Fats", value: aggVal("Fats"), mean: fatMean, median: fatMedian }
+  ];
 
-    // Global state
-    const state = {
-        data: [],
-        height: [NaN, NaN],
-        weight: [NaN, NaN],
-        sport: 'All',
-        gender: 'All',
-        mode: 'donut',  // or 'hist'
-        histAttr: null
-    };
+  const kcalAgg = aggregate(data, "Calories", state.agg);
+  const arcs = pie(stats);
 
-    // Donut chart elements
-    const donutSvg = chart.append('svg').attr('width', width).attr('height', height);
-    const donutG = donutSvg.append('g').attr('transform', `translate(${width / 2}, ${height / 2 + 10})`);
-    const arc = d3.arc().innerRadius(donutInner).outerRadius(donutOuter).padAngle(0.015).cornerRadius(6);
-    const pie = d3.pie().value(d => d.value).sort(null);
-    const centerGroup = donutG.append('g').attr('text-anchor', 'middle').style('cursor', 'default');
-    const kcalText = centerGroup.append('text').attr('dy', '-0.15em').style('font-size', '28px').style('font-weight', 700);
-    centerGroup.append('text').attr('dy', '1.2em').style('fill', '#aaa').style('font-size', '12px').text('Avg Calories');
+  const total = stats.reduce((s, d) => s + (isFinite(d.value) ? d.value : 0), 0);
+  const pct = (v) => !total || !isFinite(v) ? "0%" : d3.format(".0%")(v / total);
 
-    const legend = donutSvg.append('g').attr('transform', `translate(${width - 140}, 20)`);
-    ['Carbs', 'Proteins', 'Fats'].forEach((k, i) => {
-        const g = legend.append('g').attr('transform', `translate(0, ${i * 20})`);
-        g.append('rect').attr('width', 14).attr('height', 14).attr('fill', color(k)).attr('rx', 3);
-        g.append('text').attr('x', 20).attr('y', 12).text(k).style('font-size', '12px');
+  // Paths
+  const paths = donutG.selectAll("path.arc").data(arcs, d => d.data.key);
+
+  paths.enter().append("path").attr("class", "arc")
+    .attr("fill", d => COLOR(d.data.key))
+    .each(function (d) { this._current = d; })
+    .attr("d", arc)
+    .on("click", (ev, d) => onSliceClick(d))
+    .on("mousemove", (ev, d) => {
+      const html = `
+        <div class="title">${d.data.key}</div>
+        <div class="row"><span>Mean</span><span>${d3.format(".2f")(d.data.mean)}</span></div>
+        <div class="row"><span>Median</span><span>${d3.format(".2f")(d.data.median)}</span></div>
+        <div class="row"><span>%</span><span>${pct(d.data.value)}</span></div>
+      `;
+      showTip(html, [ev.clientX, ev.clientY]);
+    })
+    .on("mouseleave", hideTip)
+    .merge(paths)
+    .transition().duration(DUR.arc).ease(EASE.main)
+    .attrTween("d", function (d) {
+      const i = d3.interpolate(this._current, d);
+      this._current = i(1);
+      return t => arc(i(t));
     });
 
-    // Histogram elements
-    const histSvg = histogramWrap.append('svg').attr('width', histWidth).attr('height', histHeight);
-    const histG = histSvg.append('g').attr('transform', `translate(${margin.left}, ${margin.top})`);
-    const histInnerW = histWidth - margin.left - margin.right;
-    const histInnerH = histHeight - margin.top - margin.bottom;
-    const histX = d3.scaleLinear().range([0, histInnerW]);
-    const histY = d3.scaleLinear().range([histInnerH, 0]);
-    const histXAxisG = histG.append('g').attr('transform', `translate(0, ${histInnerH})`);
-    const histYAxisG = histG.append('g');
-    const histBarsG = histG.append('g');
-    const histTitle = histSvg.append('text').attr('x', margin.left).attr('y', 22).style('font-weight', 700).text('');
-    const xLab = histSvg.append('text')
-        .attr('x', margin.left + histInnerW / 2)
-        .attr('y', histHeight - 8)
-        .attr('text-anchor', 'middle')
-        .style('fill', '#aaa');
-    histSvg.append('text')
-        .attr('transform', `translate(16, ${margin.top + histInnerH / 2}) rotate(-90)`)
-        .attr('text-anchor', 'middle')
-        .style('fill', '#aaa')
-        .text('Count');
+  paths.exit().transition().duration(150).style("opacity", 0).remove();
 
-    // Dropdown builder function
-    function buildSelect(container, label, options, onChange) {
-        const wrap = container.append('label').style('display', 'grid').style('gap', '6px');
-        wrap.append('div').text(label);
-        const sel = wrap.append('select')
-            .style('padding', '6px 8px')
-            .style('border-radius', '8px');
-        sel.selectAll('option')
-            .data(options)
-            .enter()
-            .append('option')
-            .attr('value', d => d)
-            .text(d => d);
-        sel.on('change', (e) => onChange(e.target.value));
+  // Labels - remove and recreate to avoid stale transition states
+  donutG.selectAll("text.slice-label").remove();
+
+  const midR = (donutInner + donutOuter) / 2;
+  const labArc = d3.arc().innerRadius(midR).outerRadius(midR);
+
+  donutG.selectAll("text.slice-label")
+    .data(arcs, d => d.data.key)
+    .enter()
+    .append("text")
+    .attr("class", "slice-label")
+    .attr("text-anchor", "middle")
+    .attr("transform", d => `translate(${labArc.centroid(d)})`)
+    .style("opacity", d => d.data.value > 0 ? 1 : 0)
+    .text(d => state.showPerc ? `${d.data.key} ${pct(d.data.value)}` : d.data.key);
+
+  const cap = state.agg === "median" ? "Median" : "Avg";
+  centerTitle.text(`${cap} Calories`);
+  centerValue.text(Number.isFinite(kcalAgg) ? Math.round(kcalAgg).toLocaleString() : "—");
+}
+
+// Histogram
+const histG = histSvg.append("g").attr("transform", `translate(${MARGIN.left}, ${MARGIN.top})`);
+const innerW = WIDTH - MARGIN.left - MARGIN.right;
+const innerH = HEIGHT - MARGIN.top - MARGIN.bottom;
+
+const xAxisG = histG.append("g").attr("transform", `translate(0, ${innerH})`);
+const yAxisG = histG.append("g");
+const xLabel = histSvg.append("text").attr("x", WIDTH / 2).attr("y", HEIGHT - 10).attr("text-anchor", "middle").attr("class", "axis-label");
+const yLabel = histSvg.append("text").attr("transform", "rotate(-90)").attr("x", -(HEIGHT / 2)).attr("y", 16).attr("text-anchor", "middle").attr("class", "axis-label");
+const title = histSvg.append("text").attr("x", WIDTH / 2).attr("y", 24).attr("text-anchor", "middle").attr("class", "axis-title");
+
+function renderHistogram(key) {
+  const vals = state.filtered.map(d => d[key]).filter(v => !isNaN(v));
+  const x = state.xScales[key];
+  const bin = state.binGens[key];
+  const bins = bin(vals);
+
+  const y = d3.scaleLinear().domain([0, d3.max(bins, d => d.length) || 1]).nice().range([innerH, 0]);
+
+  const bars = histG.selectAll("rect.bar").data(bins, d => `${d.x0}-${d.x1}`);
+
+  bars.enter().append("rect").attr("class", "bar").attr("shape-rendering", "crispEdges")
+    .attr("x", d => Math.round(x(d.x0)) + 1).attr("y", innerH)
+    .attr("width", d => Math.max(0, Math.round(x(d.x1)) - Math.round(x(d.x0)) - 1)).attr("height", 0)
+    .merge(bars)
+    .attr("fill", COLOR(key))
+    .transition().duration(DUR.bars).ease(EASE.main)
+    .attr("x", d => Math.round(x(d.x0)) + 1)
+    .attr("width", d => Math.max(0, Math.round(x(d.x1)) - Math.round(x(d.x0)) - 1))
+    .attr("y", d => y(d.length))
+    .attr("height", d => innerH - y(d.length));
+
+  bars.exit().transition().duration(150).attr("y", innerH).attr("height", 0).remove();
+
+  xAxisG.transition().duration(DUR.axes).call(d3.axisBottom(x).ticks(8));
+  yAxisG.transition().duration(DUR.axes).call(d3.axisLeft(y).ticks(6));
+
+  title.text(`${key} distribution`);
+  xLabel.text(key);
+  yLabel.text("Count");
+}
+
+// Transitions
+function onSliceClick(d) {
+  if (state.transitioning || state.mode !== "donut") return;
+  state.transitioning = true;
+  const selectedKey = d.data.key;
+
+  donutG.selectAll("path.arc").filter(a => a.data.key !== selectedKey)
+    .transition().duration(DUR.fade).style("opacity", 0.15);
+    donutG.selectAll("text.slice-label").filter(a => a.data.key !== selectedKey)
+    .transition().duration(DUR.fade).style("opacity", 0);
+
+  const biggerArc = d3.arc().innerRadius(Math.max(0, donutInner - 10)).outerRadius(donutOuter + 28).padAngle(0.02).cornerRadius(8);
+  const clicked = donutG.selectAll("path.arc").filter(a => a.data.key === selectedKey);
+
+  clicked.raise().transition().duration(DUR.arc).ease(EASE.io)
+    .attrTween("d", function (dd) { const i = d3.interpolate(this._current, dd); return t => biggerArc(i(t)); });
+
+  donutG.transition().duration(DUR.zoom).ease(EASE.io)
+    .attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 + 16}) scale(1.12)`)
+    .on("end", () => {
+      d3.select("#donutCard").transition().duration(DUR.swap).style("opacity", 0).on("end", () => {
+        d3.select("#donutCard").classed("hidden", true).style("opacity", 1);
+        state.mode = "hist"; state.histAttr = selectedKey;
+        renderHistogram(selectedKey);
+        d3.select("#histCard").classed("hidden", false).style("opacity", 0)
+          .transition().duration(DUR.swap).style("opacity", 1)
+          .on("end", () => { ui.back && ui.back.attr("disabled", null); state.transitioning = false; resetDonutVisualState(); });
+      });
+    });
+}
+
+function resetDonutVisualState() {
+  donutG.attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 + 16}) scale(1)`);
+  donutG.selectAll("path.arc").interrupt().style("opacity", 1).transition().duration(0).attr("d", d => arc(d));
+  donutG.selectAll("text.slice-label").interrupt().style("opacity", d => d.data.value > 0 ? 1 : 0.0001);
+}
+
+function toDonut() {
+  if (state.mode !== "hist" || state.transitioning) return;
+  state.transitioning = true; ui.back && ui.back.attr("disabled", true);
+  d3.select("#histCard").transition().duration(DUR.swap).style("opacity", 0).on("end", () => {
+    d3.select("#histCard").classed("hidden", true);
+    d3.select("#donutCard").classed("hidden", false).style("opacity", 0);
+    resetDonutVisualState();
+    renderDonut();
+    d3.select("#donutCard").transition().duration(DUR.swap).style("opacity", 1)
+      .on("end", () => { state.mode = "donut"; state.histAttr = null; state.transitioning = false; });
+  });
+}
+
+// Dropdown & brush wiring
+function onDropdownChange() {
+  state.sport = ui.sport.node() ? ui.sport.property("value") : "All";
+  state.gender = ui.gender.node() ? ui.gender.property("value") : "All";
+  applyFilters();
+  if (state.mode === "donut") renderDonut(); else renderHistogram(state.histAttr);
+}
+
+let heightBrush, weightBrush;
+function createRangeBrush(svg, { domain, step = 1, initial = domain, height = 80, onChange = () => { } }) {
+  const margin = { top: 12, right: 12, bottom: 18, left: 12 };
+  const W = +svg.attr("width"), H = height;
+  const innerW = W - margin.left - margin.right, innerH = H - margin.top - margin.bottom;
+  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+  const x = d3.scaleLinear().domain(domain).range([0, innerW]).nice();
+  const axis = d3.axisBottom(x).ticks(6);
+  const axisG = g.append("g").attr("transform", `translate(0, ${innerH})`).call(axis);
+  g.append("line").attr("class", "track").attr("x1", 0).attr("x2", innerW).attr("y1", innerH / 2).attr("y2", innerH / 2);
+  const brush = d3.brushX().extent([[0, innerH / 2 - 12], [innerW, innerH / 2 + 12]]).handleSize(10).on("brush", brushed).on("end", brushEnded);
+  const brushG = g.append("g").attr("class", "brush").call(brush);
+  const handles = brushG.selectAll(".handle--custom").data([{ type: "w" }, { type: "e" }]).enter().append("rect").attr("class", "handle handle--custom").attr("width", 4).attr("height", 24).attr("y", innerH / 2 - 12).attr("rx", 2).attr("ry", 2);
+  let [a0, a1] = initial; brushG.call(brush.move, [x(a0), x(a1)]);
+  function brushed({ selection }) {
+    if (!selection) return;
+    const [x0, x1] = selection; handles.attr("x", (d, i) => i === 0 ? x0 - 2 : x1 - 2);
+    const v0 = x.invert(x0), v1 = x.invert(x1); onChange([v0, v1], false);
+  }
+  function brushEnded(ev) {
+    if (!ev.selection) return;
+    const [x0, x1] = ev.selection;
+    const v0 = snap(x.invert(x0), step, domain), v1 = snap(x.invert(x1), step, domain);
+    const s0 = x(v0), s1 = x(v1);
+    d3.select(this).transition().duration(DUR.snap).call(brush.move, [s0, s1]);
+    handles.transition().duration(DUR.snap).attr("x", (d, i) => i === 0 ? s0 - 2 : s1 - 2);
+    onChange([v0, v1], true);
+  }
+  function snap(v, step, [d0, d1]) { const s = Math.max(step, 1e-9); const clamped = Math.min(Math.max(v, d0), d1); return Math.round(clamped / s) * s; }
+  return { x, axisG, brushG, setRange([v0, v1]) { brushG.call(brush.move, [x(v0), x(v1)]); } };
+}
+
+const liveUpdateThrottled = throttle(LIVE_PREVIEW_MS, () => {
+  if (!LIVE_PREVIEW) return;
+  applyFilters();
+  if (state.mode === "donut") renderDonut(); else renderHistogram(state.histAttr);
+});
+
+// Bootstrap
+(async function init() {
+  try {
+    const raw = await loadFirstAvailable(CANDIDATE_PATHS);
+    state.raw = raw;
+
+    // Controls
+    const created = ensureAggControls();
+    ui.aggSel = created.agg; ui.showPerc = created.pct;
+    ui.aggSel.addEventListener("change", () => { state.agg = ui.aggSel.value; if (state.mode === "donut") renderDonut(); });
+    ui.showPerc.addEventListener("change", () => { state.showPerc = ui.showPerc.checked; if (state.mode === "donut") renderDonut(); });
+
+    // Domains for filters
+    const hExtent = d3.extent(raw.map(d => d.height).filter(v => !isNaN(v)));
+    const wExtent = d3.extent(raw.map(d => d.weight).filter(v => !isNaN(v)));
+    state.domain.h = [+(hExtent?.[0] ?? 1.2), +(hExtent?.[1] ?? 2.2)];
+    state.domain.w = [+(wExtent?.[0] ?? 40), +(wExtent?.[1] ?? 140)];
+    state.hMin = state.domain.h[0]; state.hMax = state.domain.h[1];
+    state.wMin = state.domain.w[0]; state.wMax = state.domain.w[1];
+
+    // Dropdowns
+    if (ui.sport.node()) {
+      const sports = Array.from(new Set(raw.map(d => d.Sport).filter(Boolean))).sort();
+      ui.sport.selectAll("option").data(["All", ...sports]).join("option").attr("value", d => d).text(d => d);
+      ui.sport.on("change", onDropdownChange);
+    }
+    if (ui.gender.node()) {
+      const genders = Array.from(new Set(raw.map(d => d.Gender).filter(Boolean))).sort();
+      ui.gender.selectAll("option").data(["All", ...genders]).join("option").attr("value", d => d).text(d => d);
+      ui.gender.on("change", onDropdownChange);
     }
 
-    // Filtering, computation, and rendering
-    function filterData(rows) {
-        const st = state;
-        return rows.filter(d =>
-            d['Height(m)'] >= st.height[0] && d['Height(m)'] <= st.height[1] &&
-            d['Weight(kg)'] >= st.weight[0] && d['Weight(kg)'] <= st.weight[1] &&
-            (st.sport === 'All' || d.Sport === st.sport) &&
-            (st.gender === 'All' || d.Gender === st.gender)
-        );
+    // Brushes
+    if (ui.hSvg.node()) {
+      heightBrush = createRangeBrush(ui.hSvg, {
+        domain: state.domain.h, step: 0.01, initial: [state.hMin, state.hMax],
+        onChange: ([v0, v1], snapped) => {
+          state.hMin = Math.min(v0, v1); state.hMax = Math.max(v0, v1);
+          updateFilterPills();
+          if (snapped) { applyFilters(); if (state.mode === "donut") renderDonut(); else renderHistogram(state.histAttr); }
+          else { liveUpdateThrottled(); }
+        }
+      });
+    }
+    if (ui.wSvg.node()) {
+      weightBrush = createRangeBrush(ui.wSvg, {
+        domain: state.domain.w, step: 1, initial: [state.wMin, state.wMax],
+        onChange: ([v0, v1], snapped) => {
+          state.wMin = Math.min(v0, v1); state.wMax = Math.max(v0, v1);
+          updateFilterPills();
+          if (snapped) { applyFilters(); if (state.mode === "donut") renderDonut(); else renderHistogram(state.histAttr); }
+          else { liveUpdateThrottled(); }
+        }
+      });
     }
 
-    function computeAverages(rows) {
-        if (!rows.length) return { Carbs: 0, Proteins: 0, Fats: 0, Calories: 0 };
-        const mean = k => d3.mean(rows, d => d[k]);
-        return {
-            Carbs: roundInt(mean('Carbs')),
-            Proteins: roundInt(mean('Proteins')),
-            Fats: roundInt(mean('Fats')),
-            Calories: roundInt(mean('Calories'))
-        };
+    updateFilterPills();
+
+    // Stabilize x-scales & bins once (from RAW)
+    for (const k of ATTRS) {
+      const ext = d3.extent(raw.map(d => d[k]).filter(v => !isNaN(v)));
+      const x = d3.scaleLinear().domain(ext).range([0, WIDTH - MARGIN.left - MARGIN.right]).nice();
+      const thresholds = x.ticks(20);
+      const bin = d3.bin().domain(x.domain()).thresholds(thresholds);
+      state.xScales[k] = x;
+      state.binGens[k] = bin;
     }
 
-    function renderDonut(rows) {
-        state.mode = 'donut';
-        state.histAttr = null;
-        backBtn.attr('disabled', true);
+    applyFilters();
+    renderDonut();
 
-        const avg = computeAverages(rows);
-        const data = [
-            { key: 'Carbs', value: avg.Carbs },
-            { key: 'Proteins', value: avg.Proteins },
-            { key: 'Fats', value: avg.Fats }
-        ];
+    // Reset button: reset dropdowns + brushes + filters
+    ui.reset && ui.reset.on("click", () => {
+      if (ui.sport.node()) { ui.sport.property("value", "All"); state.sport = "All"; }
+      if (ui.gender.node()) { ui.gender.property("value", "All"); state.gender = "All"; }
+      state.hMin = state.domain.h[0]; state.hMax = state.domain.h[1];
+      state.wMin = state.domain.w[0]; state.wMax = state.domain.w[1];
+      if (heightBrush) heightBrush.setRange([state.hMin, state.hMax]);
+      if (weightBrush) weightBrush.setRange([state.wMin, state.wMax]);
+      updateFilterPills();
+      applyFilters();
+      if (state.mode === "donut") renderDonut(); else renderHistogram(state.histAttr);
+    });
+    // Back
+    ui.back && ui.back.on("click", () => toDonut());
 
-        kcalText.text(Number.isFinite(avg.Calories) ? `${avg.Calories}` : '—');
-
-        const pieData = pie(data);
-
-        // 1) Bind data
-        const arcs = donutG.selectAll('path.arc').data(pieData, d => d.data.key);
-
-        // 2) Enter: Grow from a zero-angle arc and store the current state
-        const arcsEnter = arcs.enter()
-            .append('path')
-            .attr('class', 'arc')
-            .attr('fill', d => color(d.data.key))
-            .attr('stroke', '#111')
-            .attr('stroke-width', 1)
-            .on('click', (_, d) => {
-                state.mode = 'hist';
-                state.histAttr = d.data.key;
-                backBtn.attr('disabled', false);
-                renderHistogram(filterData(state.data), d.data.key);
-            })
-            .each(function(d) {
-                // Initial state: start and end angles are the same (zero arc)
-                this._current = { startAngle: d.startAngle, endAngle: d.startAngle };
-            });
-
-        // 3) Enter+Update: Smoothly transition from the previous state to the new state
-        arcsEnter.merge(arcs)
-            .transition().duration(700).ease(d3.easeCubicInOut)
-            .attrTween('d', function(d) {
-                const i = d3.interpolate(this._current, d);
-                this._current = i(1); // Remember the current state for the next transition
-                return t => arc(i(t));
-            });
-
-        // 4) Exit: Smoothly shrink to a zero-angle arc and then remove
-        arcs.exit()
-            .transition().duration(500).ease(d3.easeCubicInOut)
-            .attrTween('d', function(d) {
-                const end0 = { startAngle: d.endAngle, endAngle: d.endAngle };
-                const i = d3.interpolate(this._current || d, end0);
-                return t => arc(i(t));
-            })
-            .remove();
-
-        // 5) Interpolate label positions as well
-        const labels = donutG.selectAll('text.slice-label').data(pieData, d => d.data.key);
-
-        const labelsEnter = labels.enter().append('text')
-            .attr('class', 'slice-label')
-            .style('font-size', '12px')
-            .style('fill', '#ddd')
-            .attr('text-anchor', 'middle')
-            .style('opacity', 0) // Start transparent for fade-in
-            .each(function(d){ this._current = { startAngle: d.startAngle, endAngle: d.startAngle }; });
-
-        labelsEnter.merge(labels)
-            .transition().duration(700).ease(d3.easeCubicInOut)
-            .tween('pos', function(d){
-                const i = d3.interpolate(this._current, d);
-                this._current = i(1);
-                return t => d3.select(this).attr('transform', `translate(${arc.centroid(i(t))})`);
-            })
-            // Improvement: Fade labels in or out depending on their value
-            .style('opacity', d => d.data.value > 0 ? 1 : 0)
-            .text(d => `${d.data.key}: ${d.data.value}`);
-
-        labels.exit().transition().duration(300).style('opacity', 0).remove();
-    }
-
-    function renderHistogram(rows, attr) {
-        state.mode = 'hist';
-        state.histAttr = attr;
-        backBtn.attr('disabled', false);
-
-        histTitle.text(`${attr} — Histogram`);
-        xLab.text(attr);
-
-        const values = rows.map(d => +d[attr]).filter(Number.isFinite);
-        const safe = values.length ? values : [0];
-
-        const vMin = d3.min(safe), vMax = d3.max(safe);
-        const pad = (vMax - vMin) * 0.05 || 1;
-        histX.domain([vMin - pad, vMax + pad]);
-
-        const bins = d3.bin().domain(histX.domain()).thresholds(20)(safe);
-        histY.domain([0, d3.max(bins, b => b.length) || 1]);
-
-        histXAxisG.transition().duration(400).call(d3.axisBottom(histX));
-        histYAxisG.transition().duration(400).call(d3.axisLeft(histY));
-
-        const bars = histBarsG.selectAll('rect').data(bins);
-        bars.enter().append('rect')
-            .attr('x', d => histX(d.x0))
-            .attr('y', histInnerH)
-            .attr('width', d => Math.max(0, histX(d.x1) - histX(d.x0) - 1))
-            .attr('height', 0)
-            .attr('rx', 2)
-            .merge(bars)
-            .transition().duration(500)
-            // FIX: Set fill color on the merged (enter + update) selection
-            // This ensures the color updates when changing attributes.
-            .attr('fill', color(attr))
-            .attr('x', d => histX(d.x0))
-            .attr('y', d => histY(d.length))
-            .attr('width', d => Math.max(0, histX(d.x1) - histX(d.x0) - 1))
-            .attr('height', d => histInnerH - histY(d.length));
-
-        bars.exit().transition().duration(300).attr('y', histInnerH).attr('height', 0).remove();
-    }
-
-    function update() {
-        const rows = filterData(state.data);
-        if (state.mode === 'donut') renderDonut(rows);
-        else if (state.mode === 'hist' && state.histAttr) renderHistogram(rows, state.histAttr);
-    }
-
-    // Initialization: Load data + create controls
-    loadData(CANDIDATE_PATHS)
-        .then(rows => {
-            // Clean and perform initial filtering
-            const clean = rows.filter(d =>
-                Number.isFinite(d['Height(m)']) &&
-                Number.isFinite(d['Weight(kg)']) &&
-                Number.isFinite(d['Carbs']) &&
-                Number.isFinite(d['Proteins']) &&
-                Number.isFinite(d['Fats']) &&
-                Number.isFinite(d['Calories'])
-            );
-
-            if (!clean.length) throw new Error('CSV has 0 valid records (check column names or data format)');
-
-            state.data = clean;
-
-            // Dropdown options
-            const sports = Array.from(new Set(clean.map(d => d.Sport).filter(v => v != null && v !== ''))).sort();
-            const genders = Array.from(new Set(clean.map(d => d.Gender).filter(v => v != null && v !== ''))).sort();
-            buildSelect(selects, 'Sport', ['All', ...sports], v => { state.sport = v; update(); });
-            buildSelect(selects, 'Gender', ['All', ...genders], v => { state.gender = v; update(); });
-
-            // Sliders
-            const hMin = d3.min(clean, d => d['Height(m)']);
-            const hMax = d3.max(clean, d => d['Height(m)']);
-            const wMin = d3.min(clean, d => d['Weight(kg)']);
-            const wMax = d3.max(clean, d => d['Weight(kg)']);
-
-            const hStep = 0.05, wStep = 2;
-            state.height = [hMin, hMax].map(v => snapToStep(v, hStep, [hMin, hMax]));
-            state.weight = [wMin, wMax].map(v => snapToStep(v, wStep, [wMin, wMax]));
-
-            const heightSlider = createBrushSlider(ranges, {
-                title: 'Height Range (m) — Step 0.05m',
-                domain: [hMin, hMax],
-                step: hStep,
-                onChange: rng => { state.height = rng; update(); }
-            });
-            const weightSlider = createBrushSlider(ranges, {
-                title: 'Weight Range (kg) — Step 2kg',
-                domain: [wMin, wMax],
-                step: wStep,
-                onChange: rng => { state.weight = rng; update(); }
-            });
-            heightSlider.setRange(state.height[0], state.height[1]);
-            weightSlider.setRange(state.weight[0], state.weight[1]);
-
-            // Initial render
-            update();
-        })
-        .catch(err => {
-            console.error('[CSV Load Failure Diagnosis]', err);
-            const tip = [
-                'Data loading failed:',
-                err.message,
-                '',
-                'Common reasons:',
-                '1) Opening the HTML file directly using file:// protocol (browsers block local file XHR requests).',
-                '   Solution: Start a local server in the project\'s root directory, for example:',
-                '   - Python:  python -m http.server 8000',
-                '   - Node:    npx http-server -p 8000',
-                '   Then access it via http://localhost:8000.',
-                `2) Incorrect path: Ensure that ${DEFAULT_PATH} exists relative to index.html, or correct the path.`,
-                '3) Mismatched CSV delimiter/column names: This code is already compatible with comma/semicolon delimiters and common column name aliases (including "Name of Exercise").'
-            ].join('\n');
-            app.append('pre')
-                .style('white-space', 'pre-wrap')
-                .style('color', 'tomato')
-                .style('font-size', '13px')
-                .text(tip);
-        });
+  } catch (err) {
+    console.error(err);
+    const app = d3.select("body");
+    app.append("pre").style("color", "#b00020").text(String(err));
+  }
 })();
