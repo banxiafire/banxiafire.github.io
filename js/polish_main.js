@@ -265,19 +265,21 @@ function renderDonut() {
 
   paths.exit().transition().duration(150).style("opacity", 0).remove();
 
-  // Labels
-  const labels = donutG.selectAll("text.slice-label").data(arcs, d => d.data.key);
+  // Labels - remove and recreate to avoid stale transition states
+  donutG.selectAll("text.slice-label").remove();
+
   const midR = (donutInner + donutOuter) / 2;
   const labArc = d3.arc().innerRadius(midR).outerRadius(midR);
 
-  labels.enter().append("text").attr("class", "slice-label").attr("text-anchor", "middle")
-    .merge(labels)
-    .transition().duration(DUR.arc).ease(EASE.main)
+  donutG.selectAll("text.slice-label")
+    .data(arcs, d => d.data.key)
+    .enter()
+    .append("text")
+    .attr("class", "slice-label")
+    .attr("text-anchor", "middle")
     .attr("transform", d => `translate(${labArc.centroid(d)})`)
-    .style("opacity", d => d.data.value > 0 ? 1 : 0.0001)
+    .style("opacity", d => d.data.value > 0 ? 1 : 0)
     .text(d => state.showPerc ? `${d.data.key} ${pct(d.data.value)}` : d.data.key);
-
-  labels.exit().remove();
 
   const cap = state.agg === "median" ? "Median" : "Avg";
   centerTitle.text(`${cap} Calories`);
@@ -334,7 +336,7 @@ function onSliceClick(d) {
 
   donutG.selectAll("path.arc").filter(a => a.data.key !== selectedKey)
     .transition().duration(DUR.fade).style("opacity", 0.15);
-  donutG.selectAll("text.slice-label").filter(a => a.data.key !== selectedKey)
+    donutG.selectAll("text.slice-label").filter(a => a.data.key !== selectedKey)
     .transition().duration(DUR.fade).style("opacity", 0);
 
   const biggerArc = d3.arc().innerRadius(Math.max(0, donutInner - 10)).outerRadius(donutOuter + 28).padAngle(0.02).cornerRadius(8);
@@ -370,6 +372,7 @@ function toDonut() {
     d3.select("#histCard").classed("hidden", true);
     d3.select("#donutCard").classed("hidden", false).style("opacity", 0);
     resetDonutVisualState();
+    renderDonut();
     d3.select("#donutCard").transition().duration(DUR.swap).style("opacity", 1)
       .on("end", () => { state.mode = "donut"; state.histAttr = null; state.transitioning = false; });
   });
