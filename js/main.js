@@ -1,4 +1,4 @@
-const WIDTH = 980, HEIGHT = 520;
+const WIDTH = 980, HEIGHT = 600;
 const MARGIN = { top: 14, right: 26, bottom: 56, left: 70 }; // space for axis titles
 
 const DUR = { arc: 450, fade: 250, zoom: 200, swap: 220, bars: 450, axes: 200, snap: 80 };
@@ -208,82 +208,143 @@ const donutSvg = ensureSvg("#donutRoot", { width: WIDTH, height: HEIGHT, ariaLab
 const histSvg = ensureSvg("#histRoot", { width: WIDTH, height: HEIGHT, ariaLabel: "Histogram", id: "hist" });
 
 // Donut
-const donutG = donutSvg.append("g").attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 + 16}) scale(1)`);
+const donutG = donutSvg.append("g").attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 - 5}) scale(1)`);
 
-const donutInner = 100, donutOuter = 175;
-const arc = d3.arc().innerRadius(donutInner).outerRadius(donutOuter).padAngle(0.02).cornerRadius(8);
+
+const donutInner = 0;
+const donutOuter = 180;
+const outerRingInner = donutOuter + 5;
+const outerRingOuter = outerRingInner + 50;
+
+
+
 const pie = d3.pie().sort(null).value(d => d.value);
 
 const centerG = donutG.append("g");
-const centerTitle = centerG.append("text").attr("class", "center-text").attr("y", -6);
-const centerValue = centerG.append("text").attr("class", "center-text").attr("y", 16);
+const centerTitle = centerG.append("text").attr("class", "center-text").attr("y", -10);
+const centerValue = centerG.append("text").attr("class", "center-text").attr("y", 20);
 
 function renderDonut() {
-  const data = state.filtered;
-  const carbsMean = mean(data, "Carbs") ?? 0, carbsMedian = median(data, "Carbs") ?? 0;
-  const protMean = mean(data, "Proteins") ?? 0, protMedian = median(data, "Proteins") ?? 0;
-  const fatMean = mean(data, "Fats") ?? 0, fatMedian = median(data, "Fats") ?? 0;
 
-  const aggVal = (k) => aggregate(data, k, state.agg) ?? 0;
-  const stats = [
-    { key: "Carbs", value: aggVal("Carbs"), mean: carbsMean, median: carbsMedian },
-    { key: "Proteins", value: aggVal("Proteins"), mean: protMean, median: protMedian },
-    { key: "Fats", value: aggVal("Fats"), mean: fatMean, median: fatMedian }
-  ];
+    const data = state.filtered;
+    donutG.selectAll("path.arc").filter(function() {
+        return !d3.select(this).classed("inner") && !d3.select(this).classed("outer");
+    }).remove();
+    const carbsMean = mean(data, "Carbs") ?? 0, carbsMedian = median(data, "Carbs") ?? 0;
+    const protMean = mean(data, "Proteins") ?? 0, protMedian = median(data, "Proteins") ?? 0;
+    const fatMean = mean(data, "Fats") ?? 0, fatMedian = median(data, "Fats") ?? 0;
 
-  const kcalAgg = aggregate(data, "Calories", state.agg);
-  const arcs = pie(stats);
+    const aggVal = (k) => aggregate(data, k, state.agg) ?? 0;
 
-  const total = stats.reduce((s, d) => s + (isFinite(d.value) ? d.value : 0), 0);
-  const pct = (v) => !total || !isFinite(v) ? "0%" : d3.format(".0%")(v / total);
+    // inner pie data
+    const innerStats = [
+        { key: "Carbs", value: aggVal("Carbs"), mean: carbsMean, median: carbsMedian, image: "carbon_rice.png" },
+        { key: "Proteins", value: aggVal("Proteins"), mean: protMean, median: protMedian, image: "protein_fish.png" },
+        { key: "Fats", value: aggVal("Fats"), mean: fatMean, median: fatMedian, image: "fat_cheese.png" }
+    ];
 
-  // Paths
-  const paths = donutG.selectAll("path.arc").data(arcs, d => d.data.key);
+    // outter ring info
+    const outerRingStats = [{ key: "VeggieRing", value: 1, image: "veggie.png" }]; // value: 1 用于完整环
 
-  paths.enter().append("path").attr("class", "arc")
-    .attr("fill", d => COLOR(d.data.key))
-    .each(function (d) { this._current = d; })
-    .attr("d", arc)
-    .on("click", (ev, d) => onSliceClick(d))
-    .on("mousemove", (ev, d) => {
-      const html = `
-        <div class="title">${d.data.key}</div>
-        <div class="row"><span>Mean</span><span>${d3.format(".2f")(d.data.mean)}</span></div>
-        <div class="row"><span>Median</span><span>${d3.format(".2f")(d.data.median)}</span></div>
-        <div class="row"><span>%</span><span>${pct(d.data.value)}</span></div>
-      `;
-      showTip(html, [ev.clientX, ev.clientY]);
-    })
-    .on("mouseleave", hideTip)
-    .merge(paths)
-    .transition().duration(DUR.arc).ease(EASE.main)
-    .attrTween("d", function (d) {
-      const i = d3.interpolate(this._current, d);
-      this._current = i(1);
-      return t => arc(i(t));
-    });
+    const kcalAgg = aggregate(data, "Calories", state.agg);
+    const innerArcs = pie(innerStats);
+    const outerRingArcs = d3.pie().sort(null).value(d => d.value)(outerRingStats);
 
-  paths.exit().transition().duration(150).style("opacity", 0).remove();
+    const total = innerStats.reduce((s, d) => s + (isFinite(d.value) ? d.value : 0), 0);
+    const pct = (v) => !total || !isFinite(v) ? "0%" : d3.format(".0%")(v / total);
 
-  // Labels - remove and recreate to avoid stale transition states
-  donutG.selectAll("text.slice-label").remove();
+    // --- Patterns ---
+    const defs = donutG.selectAll("defs").data([null]).enter().append("defs");
 
-  const midR = (donutInner + donutOuter) / 2;
-  const labArc = d3.arc().innerRadius(midR).outerRadius(midR);
 
-  donutG.selectAll("text.slice-label")
-    .data(arcs, d => d.data.key)
-    .enter()
-    .append("text")
-    .attr("class", "slice-label")
-    .attr("text-anchor", "middle")
-    .attr("transform", d => `translate(${labArc.centroid(d)})`)
-    .style("opacity", d => d.data.value > 0 ? 1 : 0)
-    .text(d => state.showPerc ? `${d.data.key} ${pct(d.data.value)}` : d.data.key);
+    const innerPatterns = defs.selectAll("pattern.inner").data(innerStats, d => d.key).join(
+        enter => enter.append("pattern").attr("class", "inner").attr("id", d => `pattern-${d.key}`)
+            .attr("width", 1).attr("height", 1).attr("patternContentUnits", "objectBoundingBox")
+            .append("image").attr("xlink:href", d => `data/${d.image}`).attr("width", 1).attr("height", 1).attr("preserveAspectRatio", "xMidYMid slice")
+    );
 
-  const cap = state.agg === "median" ? "Median" : "Avg";
-  centerTitle.text(`${cap} Calories`);
-  centerValue.text(Number.isFinite(kcalAgg) ? Math.round(kcalAgg).toLocaleString() : "—");
+
+    const outerRingPattern = defs.selectAll("pattern.outer").data(outerRingStats, d => d.key).join(
+        enter => enter.append("pattern").attr("class", "outer").attr("id", d => `pattern-${d.key}`)
+            .attr("width", 1).attr("height", 1).attr("patternContentUnits", "objectBoundingBox")
+            .append("image").attr("xlink:href", d => `data/${d.image}`).attr("width", 1).attr("height", 1).attr("preserveAspectRatio", "xMidYMid slice")
+    );
+
+    // --- (Pie Chart Paths) ---
+    const pieArc = d3.arc().innerRadius(donutInner).outerRadius(donutOuter).padAngle(0.02).cornerRadius(8);
+    const paths = donutG.selectAll("path.arc.inner").data(innerArcs, d => d.data.key);
+
+    paths.join(
+        enter => enter.append("path").attr("class", "arc inner")
+            .attr("fill", d => `url(#pattern-${d.data.key})`)
+            .each(function (d) { this._current = d; })
+            .attr("d", pieArc)
+            .on("click", (ev, d) => onSliceClick(d))
+            .on("mousemove", (ev, d) => {
+                const html = `<div class="title">${d.data.key}</div><div class="row">
+                                        <span>Mean</span><span>${d3.format(".2f")(d.data.mean)}</span></div>
+                                        <div class="row"><span>Median</span>
+                                        <span>${d3.format(".2f")(d.data.median)}</span>
+                                        </div><div class="row"><span>%</span>
+                                        <span>${pct(d.data.value)}</span></div>`;
+                showTip(html, [ev.clientX, ev.clientY]);
+            })
+            .on("mouseleave", hideTip),
+        update => update.transition().duration(DUR.arc).ease(EASE.main)
+            .attrTween("d", function (d) {
+                const i = d3.interpolate(this._current, d);
+                this._current = i(1);
+                return t => pieArc(i(t));
+            }),
+        exit => exit.transition().duration(150).style("opacity", 0).remove()
+    );
+
+    // (Outer Ring Paths) ---
+    const outerRingArc = d3.arc().innerRadius(outerRingInner).outerRadius(outerRingOuter).padAngle(0.005).cornerRadius(0);
+    const outerPaths = donutG.selectAll("path.arc.outer").data(outerRingArcs, d => d.data.key);
+
+    outerPaths.join(
+        enter => enter.append("path").attr("class", "arc outer")
+            .attr("fill", d => `url(#pattern-${d.data.key})`)
+            .each(function (d) { this._current = d; })
+            .attr("d", outerRingArc)
+            .on("click", (ev) => ev.stopPropagation()) //
+            .on("mousemove", (ev, d) => {
+                const html = `
+                    <div class="title">Veggies</div>
+                    <div style="font-weight: bold; margin-top: 5px;">Unlimited Intake</div>
+                `;
+                showTip(html, [ev.clientX, ev.clientY]);
+            })
+            .on("mouseleave", hideTip),
+        update => update.transition().duration(DUR.arc).ease(EASE.main)
+            .attrTween("d", function (d) {
+                const i = d3.interpolate(this._current, d);
+                this._current = i(1);
+                return t => outerRingArc(i(t));
+            }),
+        exit => exit.transition().duration(150).style("opacity", 0).remove()
+    );
+
+    // --- (Labels) ---
+    donutG.selectAll("text.slice-label").remove(); // force remove old labels
+
+    const midR = donutOuter / 2;
+    const labArc = d3.arc().innerRadius(midR).outerRadius(midR);
+
+    donutG.selectAll("text.slice-label")
+        .data(innerArcs, d => d.data.key)
+        .enter()
+        .append("text")
+        .attr("class", d => `slice-label slice-label-${d.data.key}`)
+        .attr("text-anchor", "middle")
+        .attr("transform", d => `translate(${labArc.centroid(d)})`)
+        .style("opacity", d => d.data.value > 0 ? 1 : 0)
+        .text(d => state.showPerc ? `${d.data.key} ${pct(d.data.value)}` : d.data.key);
+
+    const cap = state.agg === "median" ? "Median" : "Avg";
+    centerTitle.text(`${cap} Calories`);
+    centerValue.text(Number.isFinite(kcalAgg) ? Math.round(kcalAgg).toLocaleString() : "—");
 }
 
 // Histogram
@@ -330,39 +391,55 @@ function renderHistogram(key) {
 
 // Transitions
 function onSliceClick(d) {
-  if (state.transitioning || state.mode !== "donut") return;
-  state.transitioning = true;
-  const selectedKey = d.data.key;
+    if (state.transitioning || state.mode !== "donut") return;
+    state.transitioning = true;
+    const selectedKey = d.data.key;
 
-  donutG.selectAll("path.arc").filter(a => a.data.key !== selectedKey)
-    .transition().duration(DUR.fade).style("opacity", 0.15);
+    // fade out un selected inner slices
+    donutG.selectAll("path.arc.inner").filter(a => a.data.key !== selectedKey)
+        .transition().duration(DUR.fade).style("opacity", 0.15);
     donutG.selectAll("text.slice-label").filter(a => a.data.key !== selectedKey)
-    .transition().duration(DUR.fade).style("opacity", 0);
+        .transition().duration(DUR.fade).style("opacity", 0);
 
-  const biggerArc = d3.arc().innerRadius(Math.max(0, donutInner - 10)).outerRadius(donutOuter + 28).padAngle(0.02).cornerRadius(8);
-  const clicked = donutG.selectAll("path.arc").filter(a => a.data.key === selectedKey);
+    // outter ring visilbe
+    donutG.selectAll("path.arc.outer").transition().duration(DUR.fade).style("opacity", 1);
 
-  clicked.raise().transition().duration(DUR.arc).ease(EASE.io)
-    .attrTween("d", function (dd) { const i = d3.interpolate(this._current, dd); return t => biggerArc(i(t)); });
+    // (innerRadius kept 0)
+    const biggerArc = d3.arc().innerRadius(donutInner).outerRadius(donutOuter + 28).padAngle(0.02).cornerRadius(8);
+    const clicked = donutG.selectAll("path.arc.inner").filter(a => a.data.key === selectedKey);
 
-  donutG.transition().duration(DUR.zoom).ease(EASE.io)
-    .attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 + 16}) scale(1.12)`)
-    .on("end", () => {
-      d3.select("#donutCard").transition().duration(DUR.swap).style("opacity", 0).on("end", () => {
-        d3.select("#donutCard").classed("hidden", true).style("opacity", 1);
-        state.mode = "hist"; state.histAttr = selectedKey;
-        renderHistogram(selectedKey);
-        d3.select("#histCard").classed("hidden", false).style("opacity", 0)
-          .transition().duration(DUR.swap).style("opacity", 1)
-          .on("end", () => { ui.back && ui.back.attr("disabled", null); state.transitioning = false; resetDonutVisualState(); });
-      });
-    });
+    clicked.raise().transition().duration(DUR.arc).ease(EASE.io)
+        .attrTween("d", function (dd) { const i = d3.interpolate(this._current, dd); return t => biggerArc(i(t)); });
+
+
+    donutG.transition().duration(DUR.zoom).ease(EASE.io)
+        .attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 + 16}) scale(1.12)`)
+        .on("end", () => {
+            d3.select("#donutCard").transition().duration(DUR.swap).style("opacity", 0).on("end", () => {
+                d3.select("#donutCard").classed("hidden", true).style("opacity", 1);
+                state.mode = "hist"; state.histAttr = selectedKey;
+                renderHistogram(selectedKey);
+                d3.select("#histCard").classed("hidden", false).style("opacity", 0)
+                    .transition().duration(DUR.swap).style("opacity", 1)
+                    .on("end", () => { ui.back && ui.back.attr("disabled", null); state.transitioning = false; resetDonutVisualState(); });
+            });
+        });
 }
 
 function resetDonutVisualState() {
-  donutG.attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 + 16}) scale(1)`);
-  donutG.selectAll("path.arc").interrupt().style("opacity", 1).transition().duration(0).attr("d", d => arc(d));
-  donutG.selectAll("text.slice-label").interrupt().style("opacity", d => d.data.value > 0 ? 1 : 0.0001);
+    // curve of inner
+    const pieArc = d3.arc().innerRadius(donutInner).outerRadius(donutOuter).padAngle(0.02).cornerRadius(8);
+    // curve of outer
+    const outerRingArc = d3.arc().innerRadius(outerRingInner).outerRadius(outerRingOuter).padAngle(0.005).cornerRadius(0);
+
+    donutG.attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 + 16}) scale(1)`);
+
+    // reset inner part
+    donutG.selectAll("path.arc.inner").interrupt().style("opacity", 1).transition().duration(0).attr("d", d => pieArc(d));
+    donutG.selectAll("text.slice-label").interrupt().style("opacity", d => d.data.value > 0 ? 1 : 0.0001);
+
+    // reset outter part
+    donutG.selectAll("path.arc.outer").interrupt().style("opacity", 1).transition().duration(0).attr("d", d => outerRingArc(d));
 }
 
 function toDonut() {

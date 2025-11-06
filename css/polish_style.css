@@ -113,17 +113,25 @@ button[disabled] { opacity: .5; cursor: not-allowed; }
 }
 
 /* === Chart text === */
-.center-text {
-  font-size: 14px;
-  fill: #444;
-  text-anchor: middle;
+
+.slice-label-Carbs {
+    fill: #5C4033;
+    font-size: 20px;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(0,0,0,0.4);
+}
+.slice-label-Proteins {
+    fill: #F7E6B5;
+    font-size: 20px;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(0,0,0,0.4);
 }
 
-.slice-label {
-  font-size: 16px;
-  fill: white;
-  pointer-events: none;
-  text-anchor: middle;
+.slice-label-Fats {
+    fill: #233333;
+    font-size: 20px;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(0,0,0,0.4);
 }
 
 /* === Axes === */
