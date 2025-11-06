@@ -281,7 +281,12 @@ function renderDonut() {
             .attr("d", pieArc)
             .on("click", (ev, d) => onSliceClick(d))
             .on("mousemove", (ev, d) => {
-                const html = `<div class="title">${d.data.key}</div><div class="row"><span>Mean</span><span>${d3.format(".2f")(d.data.mean)}</span></div><div class="row"><span>Median</span><span>${d3.format(".2f")(d.data.median)}</span></div><div class="row"><span>%</span><span>${pct(d.data.value)}</span></div>`;
+                const html = `<div class="title">${d.data.key}</div><div class="row">
+                                        <span>Mean</span><span>${d3.format(".2f")(d.data.mean)}</span></div>
+                                        <div class="row"><span>Median</span>
+                                        <span>${d3.format(".2f")(d.data.median)}</span>
+                                        </div><div class="row"><span>%</span>
+                                        <span>${pct(d.data.value)}</span></div>`;
                 showTip(html, [ev.clientX, ev.clientY]);
             })
             .on("mouseleave", hideTip),
@@ -294,7 +299,7 @@ function renderDonut() {
         exit => exit.transition().duration(150).style("opacity", 0).remove()
     );
 
-    // - (Outer Ring Paths) ---
+    // (Outer Ring Paths) ---
     const outerRingArc = d3.arc().innerRadius(outerRingInner).outerRadius(outerRingOuter).padAngle(0.005).cornerRadius(0);
     const outerPaths = donutG.selectAll("path.arc.outer").data(outerRingArcs, d => d.data.key);
 
@@ -303,7 +308,14 @@ function renderDonut() {
             .attr("fill", d => `url(#pattern-${d.data.key})`)
             .each(function (d) { this._current = d; })
             .attr("d", outerRingArc)
-            .on("mousemove", (ev, d) => { showTip(`<div>${d.data.key.replace("Ring", "")}</div>`, [ev.clientX, ev.clientY]); })
+            .on("click", (ev) => ev.stopPropagation()) //
+            .on("mousemove", (ev, d) => {
+                const html = `
+                    <div class="title">Veggies</div>
+                    <div style="font-weight: bold; margin-top: 5px;">Unlimited Intake</div>
+                `;
+                showTip(html, [ev.clientX, ev.clientY]);
+            })
             .on("mouseleave", hideTip),
         update => update.transition().duration(DUR.arc).ease(EASE.main)
             .attrTween("d", function (d) {
@@ -315,7 +327,7 @@ function renderDonut() {
     );
 
     // --- (Labels) ---
-    donutG.selectAll("text.slice-label").remove(); // 强制移除并重建，避免过渡问题
+    donutG.selectAll("text.slice-label").remove(); // force remove old labels
 
     const midR = donutOuter / 2;
     const labArc = d3.arc().innerRadius(midR).outerRadius(midR);
