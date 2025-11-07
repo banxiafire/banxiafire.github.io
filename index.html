@@ -1,63 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Macronutrient Explorer</title>
-  <link rel="stylesheet" href="css/polish_style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macronutrient Explorer - Personalize Your Profile</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="css/profile.css">
 </head>
-
 <body>
-  <h1>Macronutrient Explorer</h1>
-  <p class="description">Explore suggested nutrient intake (fats, protein, and carbs) based on sport type, gender, height, and weight. Adjust the filters to see aggregate nutrition data. Hover over chart sections for details, or click to view detailed distributions.</p>
+    <div class="container">
+        <header>
+            <h1>Personalize Your Profile</h1>
+            <p class="subtitle">Adjust your details to get a personalized analysis</p>
+        </header>
 
-  <section class="panel-grid-2col">
-    <div class="card grid-filters">
-      <div class="row">
-        <label for="sportSelect">Sport</label>
-        <select id="sportSelect"></select>
-      </div>
-      <div class="row">
-        <label for="genderSelect">Gender</label>
-        <select id="genderSelect"></select>
-      </div>
+        <div class="main-content">
+            <!-- Avatar Section -->
+            <div class="avatar-section">
+                <svg id="avatar-svg" width="320" height="480" viewBox="0 0 320 480"></svg>
+                <div class="avatar-stats">
+                    Height: <span id="stat-height">170</span> cm, Weight: <span id="stat-weight">70</span> kg
+                </div>
+            </div>
+
+            <!-- Controls Section -->
+            <div class="controls-section">
+                <!-- Gender Control -->
+                <div class="control-card">
+                    <label class="control-label">Gender</label>
+                    <div class="gender-toggle">
+                        <button class="gender-btn active" data-gender="male">
+                            <span class="gender-icon">♂</span>
+                            <span>Male</span>
+                        </button>
+                        <button class="gender-btn" data-gender="female">
+                            <span class="gender-icon">♀</span>
+                            <span>Female</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Height Control -->
+                <div class="control-card">
+                    <div class="input-header">
+                        <label class="control-label">Height</label>
+                        <div class="mode-toggle">
+                            <button class="mode-btn active" data-mode="exact" data-control="height">Exact</button>
+                            <button class="mode-btn" data-mode="range" data-control="height">Range</button>
+                        </div>
+                    </div>
+                    <div class="input-container">
+                        <div class="exact-input-wrapper" id="height-exact-wrapper">
+                            <input type="number" class="exact-input" id="height-exact" placeholder="170" min="120" max="200" value="170">
+                            <span class="input-unit">cm</span>
+                        </div>
+                        <div class="range-container" id="height-range"></div>
+                        <div class="value-display" id="height-display">170 cm</div>
+                        <div class="error-message" id="height-error">Please enter a height between 120-200 cm</div>
+                    </div>
+                </div>
+
+                <!-- Weight Control -->
+                <div class="control-card">
+                    <div class="input-header">
+                        <label class="control-label">Weight</label>
+                        <div class="mode-toggle">
+                            <button class="mode-btn active" data-mode="exact" data-control="weight">Exact</button>
+                            <button class="mode-btn" data-mode="range" data-control="weight">Range</button>
+                        </div>
+                    </div>
+                    <div class="input-container">
+                        <div class="exact-input-wrapper" id="weight-exact-wrapper">
+                            <input type="number" class="exact-input" id="weight-exact" placeholder="70" min="30" max="135" value="70">
+                            <span class="input-unit">kg</span>
+                        </div>
+                        <div class="range-container" id="weight-range"></div>
+                        <div class="value-display" id="weight-display">70 kg</div>
+                        <div class="error-message" id="weight-error">Please enter a weight between 30-135 kg</div>
+                    </div>
+                </div>
+
+                <!-- Continue Button -->
+                <button class="continue-btn" id="continue-btn">Continue to Analysis</button>
+            </div>
+        </div>
     </div>
 
-    <div class="card grid-height">
-      <div class="row">
-        <label>Height (m) <span id="heightVal" class="pill"></span></label>
-      </div>
-      <div id="heightBrushRoot" class="viz-root" aria-label="Height scale"></div>
-    </div>
-
-    <div class="card grid-agg">
-      <div id="aggPanel" class="agg-panel"></div>
-      <div id="aggPanelBtns" class="row">
-        <button id="backBtn" disabled>Back</button>
-        <button id="resetBtn">Reset Filters</button>
-      </div>
-    </div>
-
-    <div class="card grid-weight">
-      <div class="row">
-        <label>Weight (kg) <span id="weightVal" class="pill"></span></label>
-      </div>
-      <div id="weightBrushRoot" class="viz-root" aria-label="Weight scale"></div>
-    </div>
-
-    <div class="grid-hist">
-      <div id="donutCard" class="card">
-        <div id="donutRoot" class="viz-root" aria-label="Donut chart"></div>
-      </div>
-      <div id="histCard" class="card hidden">
-        <div id="histRoot" class="viz-root" aria-label="Histogram"></div>
-      </div>
-    </div>
-  </section>
-
-  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-  <script src="js/main.js"></script>
+    <script src="js/profile.js"></script>
 </body>
-
 </html>

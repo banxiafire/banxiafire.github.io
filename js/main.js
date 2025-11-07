@@ -143,6 +143,148 @@ async function loadFirstAvailable(paths) {
   throw new Error(`Could not load any CSV from:\n${paths.join("\n")}\n\n${lastErr ? lastErr.message : ""}\nTip: serve files via a local server (e.g., "python -m http.server").`);
 }
 
+// ---------- Profile Avatar Rendering ----------
+function createMiniAvatar(svg, gender, height, weight) {
+  const isMale = gender === 'male';
+  const scale = 1.2; // Larger avatar for main page (240x360)
+
+  const heightNorm = (height - 120) / (200 - 120);
+  const weightNorm = (weight - 30) / (135 - 30);
+  const heightScale = 0.85 + (heightNorm * 0.3);
+  const widthScale = 0.85 + (weightNorm * 0.3);
+
+  const headSize = 32 * widthScale * scale;
+  const headY = 80;
+  const bodyWidth = (isMale ? 32 : 24) * widthScale * scale;
+  const bodyHeight = 48 * heightScale * scale;
+  const bodyY = headY + headSize/2 + 2;
+  const bodyX = 120 - bodyWidth/2;
+
+  const armWidth = (isMale ? 16 : 12) * widthScale * scale;
+  const armHeight = 48 * heightScale * scale;
+  const armY = bodyY;
+  const leftArmX = 120 - bodyWidth/2 - armWidth - 1 * scale;
+  const rightArmX = 120 + bodyWidth/2 + 1 * scale;
+
+  const legWidth = 16 * widthScale * scale;
+  const legHeight = 48 * heightScale * scale;
+  const legY = bodyY + bodyHeight;
+  const leftLegX = 120 - legWidth - 0/2;
+  const rightLegX = 120 + 0/2;
+
+  const footY = legY + legHeight + 2;
+  const shoeHeight = 6 * widthScale * scale;
+
+  const hairHeight = 6 * widthScale * scale;
+  const hairWidth = headSize * 0.95;
+  const hairX = 120 - hairWidth/2;
+  const hairY = headY - headSize/2 - hairHeight + 2;
+
+  // Gradient
+  const defs = svg.append('defs');
+  const skinGradient = defs.append('linearGradient').attr('id', `skin-gradient-mini`)
+    .attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '100%');
+  skinGradient.append('stop').attr('offset', '0%').style('stop-color', '#FFD4A3').style('stop-opacity', 1);
+  skinGradient.append('stop').attr('offset', '100%').style('stop-color', '#F5C28F').style('stop-opacity', 1);
+
+  const group = svg.append('g');
+
+  // Shadow
+  group.append('ellipse').attr('cx', 120).attr('cy', footY + 5)
+    .attr('rx', (bodyWidth + armWidth * 2) * 0.6 * 0.6).attr('ry', (bodyWidth + armWidth * 2) * 0.6 * 0.15)
+    .attr('fill', '#000').attr('opacity', 0.15);
+
+  // Left arm
+  group.append('rect').attr('fill', `url(#skin-gradient-mini)`)
+    .attr('x', leftArmX).attr('y', armY).attr('width', armWidth).attr('height', armHeight);
+
+  // Legs
+  group.append('rect').attr('fill', `url(#skin-gradient-mini)`)
+    .attr('x', leftLegX).attr('y', legY).attr('width', legWidth).attr('height', legHeight);
+  group.append('rect').attr('fill', `url(#skin-gradient-mini)`)
+    .attr('x', rightLegX).attr('y', legY).attr('width', legWidth).attr('height', legHeight);
+
+  // Body
+  group.append('rect').attr('fill', `url(#skin-gradient-mini)`)
+    .attr('x', bodyX).attr('y', bodyY).attr('width', bodyWidth).attr('height', bodyHeight);
+
+  // Right arm
+  group.append('rect').attr('fill', `url(#skin-gradient-mini)`)
+    .attr('x', rightArmX).attr('y', armY).attr('width', armWidth).attr('height', armHeight);
+
+  // Shirt
+  group.append('rect').attr('fill', isMale ? '#7C9FB0' : '#6E8B3D')
+    .attr('x', bodyX).attr('y', bodyY).attr('width', bodyWidth).attr('height', bodyHeight);
+
+  // Pants
+  group.append('rect').attr('fill', isMale ? '#4A5A7A' : '#78583B')
+    .attr('x', Math.min(leftLegX, rightLegX)).attr('y', legY)
+    .attr('width', legWidth * 2).attr('height', legHeight);
+
+  // Sleeves
+  group.append('rect').attr('fill', isMale ? '#7C9FB0' : '#6E8B3D')
+    .attr('x', leftArmX).attr('y', armY).attr('width', armWidth).attr('height', armHeight);
+  group.append('rect').attr('fill', isMale ? '#7C9FB0' : '#6E8B3D')
+    .attr('x', rightArmX).attr('y', armY).attr('width', armWidth).attr('height', armHeight);
+
+  // Head
+  group.append('rect').attr('fill', `url(#skin-gradient-mini)`)
+    .attr('x', 120 - headSize/2).attr('y', headY - headSize/2)
+    .attr('width', headSize).attr('height', headSize);
+
+  // Hair
+  group.append('rect').attr('fill', isMale ? '#6B4423' : '#E69138')
+    .attr('x', hairX).attr('y', hairY).attr('width', hairWidth).attr('height', hairHeight);
+
+  if (!isMale) {
+    const sideHairWidth = headSize * 0.15;
+    const sideHairHeight = headSize * 0.8;
+    const sideHairY = headY - headSize/2 + 4;
+    group.append('rect').attr('fill', '#E69138')
+      .attr('x', 120 - headSize/2 - 2).attr('y', sideHairY)
+      .attr('width', sideHairWidth).attr('height', sideHairHeight);
+    group.append('rect').attr('fill', '#E69138')
+      .attr('x', 120 + headSize/2 - sideHairWidth + 2).attr('y', sideHairY)
+      .attr('width', sideHairWidth).attr('height', sideHairHeight);
+  }
+
+  // Eyes
+  const eyeSize = headSize * 0.12;
+  const eyeSpacing = headSize * 0.25;
+  const eyeY = headY - headSize * 0.1;
+  group.append('rect').attr('fill', 'white')
+    .attr('x', 120 - eyeSpacing - eyeSize/2).attr('y', eyeY - eyeSize/2)
+    .attr('width', eyeSize).attr('height', eyeSize);
+  group.append('rect').attr('fill', '#333')
+    .attr('x', 120 - eyeSpacing - eyeSize/2).attr('y', eyeY - eyeSize/2)
+    .attr('width', eyeSize).attr('height', eyeSize);
+  group.append('rect').attr('fill', 'white')
+    .attr('x', 120 + eyeSpacing - eyeSize/2).attr('y', eyeY - eyeSize/2)
+    .attr('width', eyeSize).attr('height', eyeSize);
+  group.append('rect').attr('fill', '#333')
+    .attr('x', 120 + eyeSpacing - eyeSize/2).attr('y', eyeY - eyeSize/2)
+    .attr('width', eyeSize).attr('height', eyeSize);
+
+  // Nose
+  const noseSize = headSize * 0.08;
+  group.append('rect').attr('fill', '#8B6F47').attr('opacity', 0.5)
+    .attr('x', 120 - noseSize/2).attr('y', headY + headSize * 0.05)
+    .attr('width', noseSize).attr('height', noseSize);
+
+  // Mouth
+  const mouthWidth = headSize * 0.35;
+  const mouthHeight = headSize * 0.06;
+  group.append('rect').attr('fill', '#5A3A1A').attr('opacity', 0.6)
+    .attr('x', 120 - mouthWidth/2).attr('y', headY + headSize * 0.2)
+    .attr('width', mouthWidth).attr('height', mouthHeight);
+
+  // Shoes
+  group.append('rect').attr('fill', '#333')
+    .attr('x', leftLegX).attr('y', footY).attr('width', legWidth).attr('height', shoeHeight);
+  group.append('rect').attr('fill', '#333')
+    .attr('x', rightLegX).attr('y', footY).attr('width', legWidth).attr('height', shoeHeight);
+}
+
 // ---------- State & UI ----------
 const ui = {
   sport: d3.select("#sportSelect"),
@@ -521,6 +663,68 @@ const liveUpdateThrottled = throttle(LIVE_PREVIEW_MS, () => {
     state.hMin = state.domain.h[0]; state.hMax = state.domain.h[1];
     state.wMin = state.domain.w[0]; state.wMax = state.domain.w[1];
 
+    // Load user preferences from localStorage (from welcome page)
+    const userGender = localStorage.getItem('gender');
+    const userHeight = localStorage.getItem('height');
+    const userWeight = localStorage.getItem('weight');
+    const userHeightMin = localStorage.getItem('height_min');
+    const userHeightMax = localStorage.getItem('height_max');
+    const userWeightMin = localStorage.getItem('weight_min');
+    const userWeightMax = localStorage.getItem('weight_max');
+
+    // Apply user preferences if available
+    if (userGender) {
+      state.gender = userGender.charAt(0).toUpperCase() + userGender.slice(1); // Capitalize first letter
+    }
+
+    if (userHeightMin && userHeightMax) {
+      // User provided a height range
+      state.hMin = +userHeightMin / 100; // Convert cm to meters
+      state.hMax = +userHeightMax / 100;
+    } else if (userHeight) {
+      // User provided exact height - create a small range around it
+      const heightM = +userHeight / 100; // Convert cm to meters
+      const range = 0.05; // ±5cm range
+      state.hMin = Math.max(state.domain.h[0], heightM - range);
+      state.hMax = Math.min(state.domain.h[1], heightM + range);
+    }
+
+    if (userWeightMin && userWeightMax) {
+      // User provided a weight range
+      state.wMin = +userWeightMin;
+      state.wMax = +userWeightMax;
+    } else if (userWeight) {
+      // User provided exact weight - create a small range around it
+      const weight = +userWeight;
+      const range = 5; // ±5kg range
+      state.wMin = Math.max(state.domain.w[0], weight - range);
+      state.wMax = Math.min(state.domain.w[1], weight + range);
+    }
+
+    // Render profile card with avatar
+    if (userGender && userHeight && userWeight) {
+      const profileSvg = d3.select('#profile-avatar-svg');
+      createMiniAvatar(profileSvg, userGender, +userHeight, +userWeight);
+
+      d3.select('#profile-gender').text(userGender.charAt(0).toUpperCase() + userGender.slice(1));
+      d3.select('#profile-height').text(`${userHeight} cm`);
+      d3.select('#profile-weight').text(`${userWeight} kg`);
+
+      // Edit profile button - preserve current values
+      d3.select('#edit-profile-btn').on('click', () => {
+        // Store current values before navigating
+        localStorage.setItem('userGender', userGender);
+        localStorage.setItem('userHeight', userHeight);
+        localStorage.setItem('userWeight', userWeight);
+        window.location.href = 'index.html';
+      });
+    }
+
+    // Hide gender dropdown (we're showing it in the profile card now)
+    if (ui.gender.node()) {
+      ui.gender.node().parentElement.style.display = 'none';
+    }
+
     // Dropdowns
     if (ui.sport.node()) {
       const sports = Array.from(new Set(raw.map(d => d.Sport).filter(Boolean))).sort();
@@ -531,6 +735,10 @@ const liveUpdateThrottled = throttle(LIVE_PREVIEW_MS, () => {
       const genders = Array.from(new Set(raw.map(d => d.Gender).filter(Boolean))).sort();
       ui.gender.selectAll("option").data(["All", ...genders]).join("option").attr("value", d => d).text(d => d);
       ui.gender.on("change", onDropdownChange);
+      // Set to user preference if available
+      if (userGender) {
+        ui.gender.property("value", state.gender);
+      }
     }
 
     // Brushes
