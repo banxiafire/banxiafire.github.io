@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Macronutrient Explorer</title>
-  <link rel="stylesheet" href="css/polish_style.css" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 
 <body>
@@ -44,9 +44,28 @@
         </div>
       </div>
 
+      <!-- Filters Card: keep scales visible -->
+      <div class="card control-card">
+        <h3 class="control-title">Your Height &amp; Weight</h3>
+        <div class="filter-row">
+          <div class="filter-label">
+            <span>Height</span>
+            <span id="heightVal" class="pill">—</span>
+          </div>
+          <div id="heightBrushRoot" class="brush-root"></div>
+        </div>
+        <div class="filter-row">
+          <div class="filter-label">
+            <span>Weight</span>
+            <span id="weightVal" class="pill">—</span>
+          </div>
+          <div id="weightBrushRoot" class="brush-root"></div>
+        </div>
+      </div>
+
       <!-- Pie Chart Card -->
       <div class="card chart-section">
-        <h3 class="chart-title">Macronutrient Distribution</h3>
+        <h3 class="chart-title">Macronutrient Distribution In A Pokebowl</h3>
         <div id="donutCard" class="chart-wrapper">
           <div id="donutRoot" class="viz-root" aria-label="Donut chart"></div>
         </div>
@@ -98,13 +117,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Hidden controls for compatibility -->
-  <div style="display: none;">
-    <div id="heightBrushRoot"></div>
-    <div id="weightBrushRoot"></div>
-    <span id="heightVal"></span>
-    <span id="weightVal"></span>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
