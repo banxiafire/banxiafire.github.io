@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build Your Pokebowl - Macronutrient Explorer</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="css/bowl_builder.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button class="back-btn" id="back-to-explorer">← Back to Explorer</button>
+            <h1>🍜 Build Your Pokebowl</h1>
+            <p class="subtitle">Drag ingredients into the bowl to match your macro goals</p>
+        </header>
+
+        <!-- Ingredient Tabs (Top) -->
+        <div class="ingredient-tabs-container">
+            <div class="category-tabs">
+                <button class="category-tab active" data-category="base">🍚 Bases</button>
+                <button class="category-tab" data-category="protein">🍗 Proteins</button>
+                <button class="category-tab" data-category="veggie">🥬 Veggies</button>
+                <button class="category-tab" data-category="fat">🥑 Fats & Toppings</button>
+            </div>
+
+            <div class="ingredients-display">
+                <div class="ingredient-grid active" id="bases-list" data-category="base"></div>
+                <div class="ingredient-grid" id="protein-list" data-category="protein"></div>
+                <div class="ingredient-grid" id="veggie-list" data-category="veggie"></div>
+                <div class="ingredient-grid" id="fat-list" data-category="fat"></div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Left Column: Bowl Contents List -->
+            <div class="bowl-contents-sidebar">
+                <div class="bowl-contents" id="bowl-contents">
+                    <h4>Your Bowl:</h4>
+                    <div class="contents-list" id="contents-list">
+                        <p class="empty-message">Bowl is empty</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Column: Bowl Area -->
+            <div class="bowl-area">
+                <div class="bowl-container" id="bowl-drop-zone">
+                    <svg id="bowl-svg" width="500" height="500" viewBox="0 0 500 500">
+                        <!-- Bowl background -->
+                        <defs>
+                            <radialGradient id="bowlGradient" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                                <stop offset="70%" style="stop-color:#f5f5f5;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e0e0e0;stop-opacity:1" />
+                            </radialGradient>
+                            <filter id="bowlShadow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+                                <feOffset dx="0" dy="4" result="offsetblur"/>
+                                <feComponentTransfer>
+                                    <feFuncA type="linear" slope="0.3"/>
+                                </feComponentTransfer>
+                                <feMerge>
+                                    <feMergeNode/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Bowl circle -->
+                        <circle cx="250" cy="250" r="200" fill="url(#bowlGradient)"
+                                stroke="#c0c0c0" stroke-width="3" filter="url(#bowlShadow)"/>
+
+                        <!-- Ingredients will be added here dynamically -->
+                        <g id="ingredients-group"></g>
+                    </svg>
+
+                    <div class="bowl-hint" id="bowl-hint">
+                        Drop ingredients here!
+                    </div>
+                </div>
+
+                <div class="bowl-actions">
+                    <button class="btn-secondary" id="clear-bowl">🗑️ Clear Bowl</button>
+                    <button class="btn-primary" id="random-bowl">🎲 Surprise Me</button>
+                </div>
+            </div>
+
+            <!-- Right Column: Macro Meters -->
+            <div class="macro-panel">
+                <div class="target-info">
+                    <h3>Your Daily Goals</h3>
+                    <p class="profile-summary" id="profile-summary">Loading...</p>
+                </div>
+
+                <div class="macro-meter">
+                    <div class="meter-header">
+                        <span class="meter-label">Carbs</span>
+                        <span class="meter-value">
+                            <span id="carbs-current">0</span>g /
+                            <span id="carbs-target">250</span>g
+                        </span>
+                    </div>
+                    <div class="meter-bar">
+                        <div class="meter-fill" id="carbs-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="macro-meter">
+                    <div class="meter-header">
+                        <span class="meter-label">Protein</span>
+                        <span class="meter-value">
+                            <span id="protein-current">0</span>g /
+                            <span id="protein-target">100</span>g
+                        </span>
+                    </div>
+                    <div class="meter-bar">
+                        <div class="meter-fill" id="protein-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="macro-meter">
+                    <div class="meter-header">
+                        <span class="meter-label">Fat</span>
+                        <span class="meter-value">
+                            <span id="fat-current">0</span>g /
+                            <span id="fat-target">65</span>g
+                        </span>
+                    </div>
+                    <div class="meter-bar">
+                        <div class="meter-fill" id="fat-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="macro-meter">
+                    <div class="meter-header">
+                        <span class="meter-label">Calories</span>
+                        <span class="meter-value">
+                            <span id="calories-current">0</span> /
+                            <span id="calories-target">1800</span> kcal
+                        </span>
+                    </div>
+                    <div class="meter-bar">
+                        <div class="meter-fill" id="calories-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="success-message" id="success-message">
+                    🎉 Perfect Balance!
+                </div>
+
+                <div class="macro-totals">
+                    <h4>Totals</h4>
+                    <div class="totals-grid">
+                        <div class="total-item">
+                            <span class="total-label">Carbs:</span>
+                            <span class="total-value" id="total-carbs">0g</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-label">Protein:</span>
+                            <span class="total-value" id="total-protein">0g</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-label">Fat:</span>
+                            <span class="total-value" id="total-fat">0g</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-label">Calories:</span>
+                            <span class="total-value" id="total-calories">0 kcal</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/bowl_builder.js"></script>
+</body>
+</html>

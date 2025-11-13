@@ -1,0 +1,26 @@
+name,category,carbs_per_100g,protein_per_100g,fat_per_100g,calories_per_100g,emoji,serving_g
+White Rice,base,28,2.7,0.3,130,🍚,150
+Brown Rice,base,23,2.6,0.9,111,🍙,150
+Quinoa,base,21,4.4,1.9,120,🌾,150
+Sweet Potato,base,20,1.6,0.1,86,🍠,150
+Cauliflower Rice,base,5,1.9,0.3,25,🥦,150
+Salmon,protein,0,20,13,208,🐟,100
+Tuna,protein,0,23,1,108,🐠,100
+Tofu,protein,2,8,4,76,🧈,100
+Chicken Breast,protein,0,31,3.6,165,🍗,100
+Shrimp,protein,0,24,0.3,99,🦐,100
+Edamame,protein,9,11,5,122,🫛,100
+Cucumber,veggie,3.6,0.7,0.1,16,🥒,80
+Carrot,veggie,10,0.9,0.2,41,🥕,80
+Seaweed,veggie,9,6,0.3,45,🌿,30
+Corn,veggie,19,3.4,1.5,86,🌽,80
+Radish,veggie,3.4,0.7,0.1,16,🔴,50
+Red Cabbage,veggie,7,1.4,0.2,31,🟣,80
+Lettuce,veggie,2.9,1.4,0.1,15,🥬,80
+Broccoli,veggie,7,2.8,0.4,34,🥦,80
+Avocado,fat,9,2,15,160,🥑,50
+Sesame Seeds,fat,23,18,50,573,⚪,15
+Peanuts,fat,16,26,49,567,🥜,30
+Soy Sauce,fat,5,8,0,53,🍶,15
+Spicy Mayo,fat,1,0.4,11,104,🔥,20
+Ginger,veggie,18,1.8,0.8,80,🫚,10

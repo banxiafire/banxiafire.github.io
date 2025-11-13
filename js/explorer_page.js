@@ -351,6 +351,10 @@
       d3.select('#profile-height').text(`${avgHeight} cm`);
       d3.select('#profile-weight').text(`${avgWeight} kg`);
 
+      // Save updated height and weight to localStorage for bowl builder
+      localStorage.setItem('height', avgHeight.toString());
+      localStorage.setItem('weight', avgWeight.toString());
+
       // Update avatar to reflect new average height/weight
       const userGender = localStorage.getItem('gender');
       if (userGender) {
@@ -1053,6 +1057,11 @@
         });
 
         ui.back && ui.back.on("click", () => toDonut());
+
+        // Bowl Builder navigation
+        d3.select("#bowlBuilderBtn").on("click", () => {
+          window.location.href = 'bowl_builder.html';
+        });
 
       } catch (err) {
         console.error(err);
