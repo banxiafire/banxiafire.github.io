@@ -517,3 +517,13 @@ svg .tick line {
   font-weight: 700;
   fill: darkgreen;
 }
+
+/* Disable hover + click when back button is disabled */
+.action-btn[disabled] {
+  pointer-events: none;     /* disables hover + click */
+  opacity: 0.45;            /* visually dim */
+  cursor: default;
+  border-color: var(--line);
+  color: var(--text-medium);
+  background: transparent;  /* ensures no hover color flashes */
+}

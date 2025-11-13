@@ -539,10 +539,14 @@
       brushG.call(brush.move, [x(defaultMin), x(defaultMax)]);
 
       function brushed(event) {
-        if (event.selection) {
-          const [x0, x1] = event.selection.map(x.invert);
-          onBrush(Math.round(x0), Math.round(x1));
-        }
+        if (!event.selection) return;
+        const [x0, x1] = event.selection.map(x.invert);
+        const minVal = Math.round(x0);
+        const maxVal = Math.round(x1);
+
+        const animate = !!event.sourceEvent;
+
+        onBrush(minVal, maxVal, animate);
       }
 
       return { brush, brushG, x };
@@ -555,14 +559,20 @@
       state.heightMax = defaultMax;
       state.height = Math.round((defaultMin + defaultMax) / 2);
 
-      heightBrush = createBrush('height-range', HEIGHT_RANGE.min, HEIGHT_RANGE.max, defaultMin, defaultMax, '', (min, max) => {
-        state.heightMin = min;
-        state.heightMax = max;
-        state.height = Math.round((min + max) / 2);
-        d3.select('#height-display').text(`${min} - ${max} cm (avg: ${state.height} cm)`);
-        d3.select('#stat-height').text(state.height);
-        updateAvatar(true);
-      });
+      heightBrush = createBrush(
+        'height-range',
+        HEIGHT_RANGE.min, HEIGHT_RANGE.max,
+        defaultMin, defaultMax,
+        '',
+        (min, max, animate) => {
+          state.heightMin = min;
+          state.heightMax = max;
+          state.height = Math.round((min + max) / 2);
+          d3.select('#height-display').text(`${min} - ${max} cm (avg: ${state.height} cm)`);
+          d3.select('#stat-height').text(state.height);
+          updateAvatar(animate);
+        }
+      );
     }
 
     function initWeightBrush(defaultMin = 65, defaultMax = 75) {
@@ -570,14 +580,20 @@
       state.weightMax = defaultMax;
       state.weight = Math.round((defaultMin + defaultMax) / 2);
 
-      weightBrush = createBrush('weight-range', WEIGHT_RANGE.min, WEIGHT_RANGE.max, defaultMin, defaultMax, '', (min, max) => {
-        state.weightMin = min;
-        state.weightMax = max;
-        state.weight = Math.round((min + max) / 2);
-        d3.select('#weight-display').text(`${min} - ${max} kg (avg: ${state.weight} kg)`);
-        d3.select('#stat-weight').text(state.weight);
-        updateAvatar(true);
-      });
+      weightBrush = createBrush(
+        'weight-range',
+        WEIGHT_RANGE.min, WEIGHT_RANGE.max,
+        defaultMin, defaultMax,
+        '',
+        (min, max, animate) => {
+          state.weightMin = min;
+          state.weightMax = max;
+          state.weight = Math.round((min + max) / 2);
+          d3.select('#weight-display').text(`${min} - ${max} kg (avg: ${state.weight} kg)`);
+          d3.select('#stat-weight').text(state.weight);
+          updateAvatar(animate);
+        }
+      );
     }
 
     // ========== EVENT HANDLERS ==========

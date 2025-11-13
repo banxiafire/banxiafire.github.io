@@ -81,6 +81,7 @@
         pct = document.createElement("input");
         pct.type = "checkbox";
         pct.id = "showPerc";
+        pct.checked = true;
 
         const pctText = document.createElement("span");
         pctText.textContent = "Show % on slices";
@@ -418,7 +419,7 @@
         if (!data.length || !isFinite(kcalAgg)) {
           spoonText.text("No data");
         } else {
-          const label = state.agg === "mean" ? "Mean" : "Median";
+          const label = state.agg === "mean" ? "Total Calorie Mean" : "Total Calorie Median";
           spoonText.text(`${label}: ${d3.format(".0f")(kcalAgg)} kcal`);
         }
       }
@@ -571,15 +572,23 @@
       centerTitle.text(`NOT ENOUGH DATA`);
     }
 
-    const histG = histSvg.append("g").attr("transform", `translate(${MARGIN.left}, ${MARGIN.top})`);
+    const HIST_TOP = MARGIN.top + 60;
+
+    const histG = histSvg.append("g")
+      .attr("transform", `translate(${MARGIN.left}, ${HIST_TOP})`);
+
     const innerW = WIDTH - MARGIN.left - MARGIN.right;
-    const innerH = HEIGHT - MARGIN.top - MARGIN.bottom;
+    const innerH = HEIGHT - HIST_TOP - MARGIN.bottom;
 
     const xAxisG = histG.append("g").attr("transform", `translate(0, ${innerH})`);
     const yAxisG = histG.append("g");
     const xLabel = histSvg.append("text").attr("x", WIDTH / 2).attr("y", HEIGHT - 10).attr("text-anchor", "middle").attr("class", "axis-label");
     const yLabel = histSvg.append("text").attr("transform", "rotate(-90)").attr("x", -(HEIGHT / 2)).attr("y", 16).attr("text-anchor", "middle").attr("class", "axis-label");
-    const title = histSvg.append("text").attr("x", WIDTH / 2).attr("y", 24).attr("text-anchor", "middle").attr("class", "axis-title");
+    const title = histSvg.append("text")
+      .attr("x", WIDTH / 2)
+      .attr("y", 24)
+      .attr("text-anchor", "middle")
+      .attr("class", "axis-title");
 
     function renderHistogram(key) {
       const vals = state.filtered.map(d => d[key]).filter(v => !isNaN(v));
@@ -649,13 +658,12 @@
       state.mode = "donut";
       state.histAttr = null;
 
-      // hide histogram, show donut again
       d3.select("#histCard").classed("hidden", true);
       d3.select("#donutCard").classed("hidden", false);
 
       renderDonut();
 
-      // disable back button (no histogram open)
+      // DISABLE BUTTON
       if (ui.back) ui.back.attr("disabled", true);
     }
 
@@ -814,6 +822,7 @@
         ui.aggSel = created.agg; ui.showPerc = created.pct;
         ui.aggSel.addEventListener("change", () => { state.agg = ui.aggSel.value; if (state.mode === "donut") renderDonut(); });
         ui.showPerc.addEventListener("change", () => { state.showPerc = ui.showPerc.checked; if (state.mode === "donut") renderDonut(); });
+        state.showPerc = true;
 
         const hExtent = d3.extent(raw.map(d => d.height).filter(v => !isNaN(v)));
         const wExtent = d3.extent(raw.map(d => d.weight).filter(v => !isNaN(v)));
