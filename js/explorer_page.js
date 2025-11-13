@@ -8,7 +8,7 @@
     const WIDTH = 980, HEIGHT = 600;
     const MARGIN = { top: 14, right: 26, bottom: 56, left: 70 };
 
-    const DUR = { arc: 450, fade: 250, zoom: 200, swap: 220, bars: 450, axes: 200, snap: 80 };
+    const DUR = { arc: 200, fade: 250, zoom: 200, swap: 220, bars: 200, axes: 200, snap: 80 };
     const EASE = { main: d3.easeCubicOut, io: d3.easeCubicInOut };
 
     const LIVE_PREVIEW = false;
@@ -436,7 +436,7 @@
       // Update spoon text: mean or median calories depending on Analysis Options
       if (typeof spoonText !== "undefined") {
         if (!data.length || !isFinite(kcalAgg)) {
-          spoonText.text("No data");
+          spoonText.text("No data, please choose another range");
         } else {
           const label = state.agg === "mean" ? "Total Calorie Mean" : "Total Calorie Median";
           spoonText.text(`${label}: ${d3.format(".0f")(kcalAgg)} kcal`);
@@ -591,53 +591,146 @@
       centerTitle.text(`NOT ENOUGH DATA`);
     }
 
-    const HIST_TOP = MARGIN.top + 60;
+    // --- Radial histogram (circular bar chart, based on protein_circular.js) ---
 
-    const histG = histSvg.append("g")
-      .attr("transform", `translate(${MARGIN.left}, ${HIST_TOP})`);
+    // group in the centre of the histogram SVG
+    const histCenterG = histSvg.append("g")
+      .attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 - 65})`);
 
-    const innerW = WIDTH - MARGIN.left - MARGIN.right;
-    const innerH = HEIGHT - HIST_TOP - MARGIN.bottom;
+    const RADIAL_INNER = 70;
+    const RADIAL_OUTER = 300;
 
-    const xAxisG = histG.append("g").attr("transform", `translate(0, ${innerH})`);
-    const yAxisG = histG.append("g");
-    const xLabel = histSvg.append("text").attr("x", WIDTH / 2).attr("y", HEIGHT - 10).attr("text-anchor", "middle").attr("class", "axis-label");
-    const yLabel = histSvg.append("text").attr("transform", "rotate(-90)").attr("x", -(HEIGHT / 2)).attr("y", 16).attr("text-anchor", "middle").attr("class", "axis-label");
-    const title = histSvg.append("text")
+    const histTitle = histSvg.append("text")
       .attr("x", WIDTH / 2)
-      .attr("y", 24)
+      .attr("y", 40)
       .attr("text-anchor", "middle")
       .attr("class", "axis-title");
 
+    // key = "Carbs" | "Proteins" | "Fats"
     function renderHistogram(key) {
-      const vals = state.filtered.map(d => d[key]).filter(v => !isNaN(v));
-      const x = state.xScales[key];
-      const bin = state.binGens[key];
+      const vals = state.filtered
+        .map(d => d[key])
+        .filter(v => !isNaN(v));
+
+      // clear old labels
+      histCenterG.selectAll("text.center-label").remove();
+
+      if (!vals.length) {
+        histCenterG.selectAll("path.hist-bar").remove();
+        histTitle.text(`Not enough data for ${key}, please choose another range.`);
+        return;
+      }
+
+      // use existing bin generator if available, otherwise create one
+      let bin = state.binGens[key];
+      if (!bin) {
+        const ext = d3.extent(vals);
+        const x = d3.scaleLinear().domain(ext).nice();
+        bin = d3.bin().domain(x.domain()).thresholds(x.ticks(20));
+        state.binGens[key] = bin;
+      }
+
       const bins = bin(vals);
+      if (!bins.length) {
+        histCenterG.selectAll("path.hist-bar").remove();
+        histTitle.text(`Not enough data for ${key}, please choose another range.`);
+        return;
+      }
 
-      const y = d3.scaleLinear().domain([0, d3.max(bins, d => d.length) || 1]).nice().range([innerH, 0]);
+      const maxCount = d3.max(bins, b => b.length) || 1;
 
-      const bars = histG.selectAll("rect.bar").data(bins, d => `${d.x0}-${d.x1}`);
+      // angle: one slice per bin
+      const angle = d3.scaleLinear()
+        .domain([0, bins.length])
+        .range([0, 2 * Math.PI]);
 
-      bars.enter().append("rect").attr("class", "bar").attr("shape-rendering", "crispEdges")
-        .attr("x", d => Math.round(x(d.x0)) + 1).attr("y", innerH)
-        .attr("width", d => Math.max(0, Math.round(x(d.x1)) - Math.round(x(d.x0)) - 1)).attr("height", 0)
-        .merge(bars)
+      // radius: count → bar length
+      const radius = d3.scaleLinear()
+        .domain([0, maxCount])
+        .range([RADIAL_INNER, RADIAL_OUTER]);
+
+      // build arc data (like in protein_circular.js)
+      const arcsData = bins.map((b, i) => ({
+        x0: b.x0,
+        x1: b.x1,
+        count: b.length,
+        startAngle: angle(i),
+        endAngle: angle(i + 1)
+      }));
+
+      const arc = d3.arc()
+        .innerRadius(RADIAL_INNER)
+        .outerRadius(d => radius(d.count))
+        .startAngle(d => d.startAngle)
+        .endAngle(d => d.endAngle)
+
+      const bars = histCenterG.selectAll("path.hist-bar")
+        .data(arcsData, d => `${d.x0}-${d.x1}`);
+
+      // EXIT: fade out only
+      bars.exit()
+        .transition()
+        .duration(150)
+        .style("opacity", 0)
+        .remove();
+
+      // ENTER: start collapsed
+      const barsEnter = bars.enter()
+        .append("path")
+        .attr("class", "hist-bar")
         .attr("fill", COLOR(key))
-        .transition().duration(DUR.bars).ease(EASE.main)
-        .attr("x", d => Math.round(x(d.x0)) + 1)
-        .attr("width", d => Math.max(0, Math.round(x(d.x1)) - Math.round(x(d.x0)) - 1))
-        .attr("y", d => y(d.length))
-        .attr("height", d => innerH - y(d.length));
+        .attr("stroke", "#ffffff")
+        .attr("stroke-width", 1)
+        .style("opacity", 1)
+        .each(function () {
+          this._prevCount = 0;   // previous bar height
+        });
 
-      bars.exit().transition().duration(150).attr("y", innerH).attr("height", 0).remove();
+      // ENTER + UPDATE: animate only the radius (count → radius(count))
+      barsEnter.merge(bars)
+        .transition()
+        .duration(160)
+        .ease(d3.easeCubicOut)
+        .attrTween("d", function (d) {
+          const prev = this._prevCount != null ? this._prevCount : d.count;
+          const i = d3.interpolate(prev, d.count);
+          this._prevCount = d.count;
+          return t => arc({ ...d, count: i(t) });   // angles fixed, only radius changes
+        })
+        .attr("fill", COLOR(key));
 
-      xAxisG.transition().duration(DUR.axes).call(d3.axisBottom(x).ticks(8));
-      yAxisG.transition().duration(DUR.axes).call(d3.axisLeft(y).ticks(6));
 
-      title.text(`${key} distribution`);
-      xLabel.text(key);
-      yLabel.text("Count");
+      // Tooltips (reuse global tooltip div created earlier)
+      histCenterG.selectAll("path.hist-bar")
+        .on("mousemove", (ev, d) => {
+          const rangeText = `${d.x0.toFixed(1)} – ${d.x1.toFixed(1)}`;
+          const html = `
+        <div class="tip-title">${key} bin</div>
+        <div class="tip-row"><span>Range</span><span>${rangeText}</span></div>
+        <div class="tip-row"><span>Count</span><span>${d.count}</span></div>
+      `;
+          showTip(html, [ev.clientX, ev.clientY]);
+        })
+        .on("mouseleave", hideTip);
+
+      // Center labels (like in protein_circular.js)
+      const meanVal = d3.mean(vals);
+
+      histCenterG.append("text")
+        .attr("class", "center-label")
+        .attr("text-anchor", "middle")
+        .attr("dy", "-0.3em")
+        .style("font-weight", "600")
+        .text(`Mean: ${meanVal.toFixed(1)}`);
+
+      histCenterG.append("text")
+        .attr("class", "center-label")
+        .attr("text-anchor", "middle")
+        .attr("dy", "1.1em")
+        .style("font-size", "12px")
+        .text(`${key} per meal`);
+
+      histTitle.text(`Frequency distribution for ${key}`);
     }
 
     function onSliceClick(d) {

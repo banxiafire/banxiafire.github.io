@@ -527,3 +527,8 @@ svg .tick line {
   color: var(--text-medium);
   background: transparent;  /* ensures no hover color flashes */
 }
+
+#histRoot .radial-bar {
+  stroke: white;
+  stroke-width: 0.5px;
+}
