@@ -343,6 +343,21 @@
       if (ui.wVal) {
         ui.wVal.text(`${Math.round(state.wMin)}–${Math.round(state.wMax)}`);
       }
+
+      // Update profile display with current filter values
+      const avgHeight = Math.round((state.hMin * 100 + state.hMax * 100) / 2);
+      const avgWeight = Math.round((state.wMin + state.wMax) / 2);
+
+      d3.select('#profile-height').text(`${avgHeight} cm`);
+      d3.select('#profile-weight').text(`${avgWeight} kg`);
+
+      // Update avatar to reflect new average height/weight
+      const userGender = localStorage.getItem('gender');
+      if (userGender) {
+        const profileSvg = d3.select('#profile-avatar-svg');
+        profileSvg.selectAll('*').remove(); // Clear existing avatar
+        createMiniAvatar(profileSvg, userGender, avgHeight, avgWeight);
+      }
     }
 
     function mean(arr, key) { return d3.mean(arr, d => d[key]); }
