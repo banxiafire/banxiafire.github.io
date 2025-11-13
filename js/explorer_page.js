@@ -879,7 +879,7 @@
             localStorage.setItem('height', Math.round((state.hMin * 100 + state.hMax * 100) / 2));
             localStorage.setItem('weight', Math.round((state.wMin + state.wMax) / 2));
 
-            window.location.href = 'profile_page.html';
+            window.location.href = 'index.html';
           });
 
         }
