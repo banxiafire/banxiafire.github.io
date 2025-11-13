@@ -30,10 +30,6 @@ body {
   padding: 24px 40px;
 }
 
-html, body {
-  overflow-x: hidden;
-}
-
 /* Centered header + main content */
 .page-header,
 .main-container {
@@ -531,4 +527,12 @@ svg .tick line {
 #histRoot .radial-bar {
   stroke: white;
   stroke-width: 0.5px;
+}
+
+/* Shrink entire layout by 20% on MacBook Air 13" screens */
+@media (min-width: 1200px) and (max-width: 1500px) {
+  body.explorer-layout {
+    transform: scale(0.8);
+    transform-origin: top center;
+  }
 }

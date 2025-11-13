@@ -353,3 +353,11 @@ h1 {
 .hint {
   font-style: italic;
 }
+
+/* Shrink entire layout by 20% on MacBook Air 13" screens */
+@media (min-width: 1200px) and (max-width: 1500px) {
+  body {
+    transform: scale(0.8);
+    transform-origin: top center;
+  }
+}

@@ -595,10 +595,10 @@
 
     // group in the centre of the histogram SVG
     const histCenterG = histSvg.append("g")
-      .attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 - 65})`);
+      .attr("transform", `translate(${WIDTH / 2}, ${HEIGHT / 2 + 0})`);
 
     const RADIAL_INNER = 70;
-    const RADIAL_OUTER = 300;
+    const RADIAL_OUTER = 250;
 
     const histTitle = histSvg.append("text")
       .attr("x", WIDTH / 2)
@@ -679,7 +679,7 @@
         .append("path")
         .attr("class", "hist-bar")
         .attr("fill", COLOR(key))
-        .attr("stroke", "#ffffff")
+        .attr("stroke", "#ccc")
         .attr("stroke-width", 1)
         .style("opacity", 1)
         .each(function () {
@@ -735,21 +735,43 @@
 
     function onSliceClick(d) {
       const selectedKey = d.data.key;
-
-      // remember which attribute we’re showing
       state.mode = "hist";
       state.histAttr = selectedKey;
 
-      // hide donut card, show histogram card (same place)
-      d3.select("#donutCard").classed("hidden", true);
-      d3.select("#histCard").classed("hidden", false);
+      const donutCard = d3.select("#donutCard");
+      const histCard = d3.select("#histCard");
 
-      // render the histogram for this nutrient
-      renderHistogram(selectedKey);
+      // fade OUT the donut first
+      donutCard
+        .transition()
+        .duration(250)
+        .style("opacity", 0)
+        .on("end", () => {
+          // hide donut from layout
+          donutCard
+            .classed("hidden", true)
+            .style("opacity", 1); // reset for next time
+
+          // show histogram only AFTER donut is gone
+          histCard
+            .classed("hidden", false)
+            .style("opacity", 0);
+
+          // render the histogram now
+          renderHistogram(selectedKey);
+
+          // fade IN the histogram
+          histCard
+            .transition()
+            .duration(250)
+            .style("opacity", 1);
+        });
 
       // enable back button
       if (ui.back) ui.back.attr("disabled", null);
     }
+
+
 
 
     function resetDonutVisualState() {
@@ -770,14 +792,39 @@
       state.mode = "donut";
       state.histAttr = null;
 
-      d3.select("#histCard").classed("hidden", true);
-      d3.select("#donutCard").classed("hidden", false);
+      const donutCard = d3.select("#donutCard");
+      const histCard = d3.select("#histCard");
 
-      renderDonut();
+      // fade OUT the circular chart first
+      histCard
+        .transition()
+        .duration(250)
+        .style("opacity", 0)
+        .on("end", () => {
+          // hide hist from layout
+          histCard
+            .classed("hidden", true)
+            .style("opacity", 1); // reset
 
-      // DISABLE BUTTON
+          // show donut only AFTER hist is gone
+          donutCard
+            .classed("hidden", false)
+            .style("opacity", 0);
+
+          // re-render donut in case filters changed
+          renderDonut();
+
+          // fade IN the donut
+          donutCard
+            .transition()
+            .duration(250)
+            .style("opacity", 1);
+        });
+
       if (ui.back) ui.back.attr("disabled", true);
     }
+
+
 
 
     function onDropdownChange() {
