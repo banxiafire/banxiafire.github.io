@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Macronutrient Explorer</title>
+  <link rel="stylesheet" href="css/explorer.css" />
+</head>
+
+<body class="explorer-layout">
+  <div class="explorer-wrapper">
+    <header class="page-header">
+      <h1>Macronutrient Explorer</h1>
+      <p class="description">Explore suggested nutrient intake based on your profile and sport preferences</p>
+    </header>
+
+    <div class="main-container">
+      <!-- LEFT COLUMN: Avatar + Profile + Pie Chart -->
+      <div class="left-column">
+        <!-- Avatar & Profile Info Card -->
+        <div class="card profile-section">
+          <div class="avatar-container">
+            <svg id="profile-avatar-svg" width="240" height="360" viewBox="0 0 240 360"></svg>
+          </div>
+          <div class="profile-details">
+            <h2>Your Profile</h2>
+            <div class="profile-stats">
+              <div class="profile-stat">
+                <span class="profile-stat-label">Gender</span>
+                <span class="profile-stat-value" id="profile-gender">-</span>
+              </div>
+              <div class="profile-stat">
+                <span class="profile-stat-label">Height</span>
+                <span class="profile-stat-value" id="profile-height">-</span>
+              </div>
+              <div class="profile-stat">
+                <span class="profile-stat-label">Weight</span>
+                <span class="profile-stat-value" id="profile-weight">-</span>
+              </div>
+            </div>
+            <button class="edit-profile-btn" id="edit-profile-btn">
+              <span>✏️</span> Edit Profile
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters card: height + weight in one card -->
+        <div class="card control-card">
+          <h2 class="control-title">Height &amp; Weight Filters</h2>
+          <div class="control-content">
+            <!-- Height -->
+            <div class="filter-row">
+              <div class="filter-label-group">
+                <span class="filter-label">Height</span>
+                <span class="pill range-pill"><span id="heightVal"></span>cm</span>
+              </div>
+              <div class="brush-root" id="heightBrushRoot"></div>
+            </div>
+
+            <!-- Weight -->
+            <div class="filter-row">
+              <div class="filter-label-group">
+                <span class="filter-label">Weight</span>
+                <span class="pill range-pill"><span id="weightVal"></span>kg</span>
+              </div>
+              <div class="brush-root" id="weightBrushRoot"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pie Chart Card -->
+        <div class="card chart-section">
+          <h3 class="chart-title">Macronutrient Breakdown In A Pokebowl</h3>
+          
+          <div id="donutCard" class="chart-wrapper">
+            <div id="donutRoot" class="viz-root" aria-label="Donut chart"></div>
+          </div>
+          
+          <div id="histCard" class="chart-wrapper hidden">
+            <div id="histRoot" class="viz-root" aria-label="Histogram"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Controls -->
+      <div class="right-column">
+        <!-- Sport Filter Card -->
+        <div class="card control-card">
+          <h3 class="control-title">Sport Filter</h3>
+          <div class="control-content">
+            <label for="sportSelect" class="control-label-inline">Select Sport</label>
+            <select id="sportSelect" class="control-select"></select>
+          </div>
+        </div>
+
+        <!-- Aggregation Options Card -->
+        <div class="card control-card">
+          <h3 class="control-title">Analysis Options</h3>
+          <div id="aggPanel" class="control-content"></div>
+        </div>
+
+        <!-- Action Buttons Card -->
+        <div class="card control-card">
+          <h3 class="control-title">Actions</h3>
+          <div class="button-group">
+            <button id="backBtn" class="action-btn secondary-btn" disabled>
+              <span>←</span> Back
+            </button>
+            <button id="resetBtn" class="action-btn primary-btn">
+              <span>↻</span> Reset Filters
+            </button>
+          </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="card info-card">
+          <h3 class="info-title">💡 How to Use</h3>
+          <ul class="info-list">
+            <li>Select a sport to filter the data</li>
+            <li>Hover over chart sections for details</li>
+            <li>Click on a section to view distribution</li>
+            <li>Use the back button to return to overview</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="js/explorer_page.js"></script>
+</body>
+
+</html>

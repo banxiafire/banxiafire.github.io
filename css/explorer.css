@@ -1,0 +1,519 @@
+/* ============ EXPLORER PAGE STYLES ============ */
+
+:root {
+  --primary-green: #6BCF7F;
+  --secondary-teal: #4FC3DC;
+  --bg-mint: #E8F5F1;
+  --bg-seafoam: #D4EFE8;
+  --card: #FFFFFF;
+  --ink: #111;
+  --muted: #666;
+  --line: #E0E7ED;
+  --text-dark: #2C3E50;
+  --text-medium: #5A6C7D;
+}
+
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Background + base typography */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', sans-serif;
+  background: linear-gradient(135deg, var(--bg-mint) 0%, var(--bg-seafoam) 100%);
+  color: var(--text-dark);
+  min-height: 100vh;
+  padding: 24px 40px;
+}
+
+html, body {
+  overflow-x: hidden;
+}
+
+/* Centered header + main content */
+.page-header,
+.main-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.page-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+h1 {
+  margin-bottom: 0.5rem;
+  font-size: 2.7rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.5px;
+}
+
+.description {
+  max-width: 980px;
+  margin: 0 auto;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--text-medium);
+}
+
+/* Main grid: left charts, right filters */
+.main-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.8rem;
+}
+
+/* Left + right columns */
+.left-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+/* Generic card */
+.card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Profile section at top */
+.profile-section {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 0;
+}
+
+/* Small avatar in profile card */
+.avatar-container {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  padding: 0.5rem 0.75rem;
+}
+
+.avatar-container svg {
+  width: 72px;
+  height: 108px;
+  display: block;
+}
+
+/* Profile text */
+.profile-details {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-details h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.profile-stats {
+  display: flex;
+  gap: 1.1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+}
+
+.profile-stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.profile-stat-value {
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+/* Edit profile button */
+.edit-profile-btn {
+  margin-left: auto;
+  margin-right: 2rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--primary-green);
+  background: transparent;
+  color: var(--primary-green);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.edit-profile-btn:hover {
+  background: var(--primary-green);
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(107, 207, 127, 0.3);
+}
+
+/* Height/weight sliders block */
+.control-title {
+  margin-bottom: 0.9rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.control-label-inline {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-medium);
+  margin-bottom: 0.45rem;
+}
+
+/* Filter rows (sport, etc.) */
+.control-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+#aggPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Checkbox row in Analysis Options */
+.agg-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.9rem;
+  color: var(--text-medium);
+  white-space: nowrap;   /* keeps "Show % on slices" on one line */
+}
+
+.control-select {
+  width: 100%;
+  padding: 0.7rem 0.95rem;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Hover effect */
+.control-select:hover {
+  border-color: var(--primary-green);   /* green border on hover */
+}
+
+/* Focus (clicked) */
+.control-select:focus {
+  outline: none;
+  border-color: var(--primary-green);  
+  box-shadow: 0 0 0 3px rgba(107, 207, 127, 0.12);
+}
+
+/* When user has selected a non-default sport */
+.control-select.selected {
+  border-color: var(--primary-green);
+  color: var(--primary-green);
+}
+
+.control-card .filter-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 8px 14px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.control-card .filter-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-medium);
+}
+
+/* Buttons on right column */
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.action-btn {
+  padding: 0.8rem 1.1rem;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, var(--primary-green), var(--secondary-teal));
+  border-color: var(--primary-green);
+  color: #fff;
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(107, 207, 127, 0.3);
+}
+
+.secondary-btn {
+  background: transparent;
+  color: var(--text-medium);
+}
+
+.secondary-btn:hover {
+  border-color: var(--primary-green);
+  color: var(--primary-green);
+}
+
+/* Info card text */
+.info-card {
+  background-color: var(--bg-seafoam);
+}
+
+.info-title {
+  margin-bottom: 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.info-list {
+  list-style: none;
+  padding-left: 1.1rem;
+}
+
+.info-list li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.9rem;
+  color: var(--text-medium);
+}
+
+.info-list li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--primary-green);
+}
+
+/* Chart area */
+.chart-section {
+  padding: 1.8rem 1.5rem 2rem;
+}
+
+.chart-title {
+  margin-bottom: 2rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.chart-wrapper {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Donut labels */
+.slice-leader {
+  stroke: #777;
+  stroke-width: 1.2;
+  fill: none;
+}
+.out-label {
+  font-size: 20px;
+  fill: #333;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* D3 axes and brushes (explorer) */
+svg .domain,
+svg .tick line {
+  shape-rendering: crispEdges;
+}
+
+.tick text {
+  font-size: 11px;
+  fill: #666;
+}
+
+.brush .selection {
+  fill: var(--primary-green);
+  fill-opacity: 0.25;
+  stroke: var(--primary-green);
+  stroke-width: 2;
+}
+
+.brush .handle {
+  fill: var(--primary-green);
+}
+
+.axis path,
+.axis line {
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+/* Slider SVG */
+.brush-root svg {
+  width: 100%;
+  height: 90px;
+  display: block;
+}
+
+/* Responsive behaviour */
+
+/* Tablets / narrower laptops */
+@media (max-width: 1024px) {
+  body {
+    padding: 20px 20px;
+  }
+
+  .main-container {
+    grid-template-columns: 1fr;
+  }
+
+  .right-column {
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+  }
+}
+
+/* Small screens / phones */
+@media (max-width: 720px) {
+  body {
+    padding: 16px 12px;
+  }
+
+  h1 {
+    font-size: 2.2rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+
+  .profile-section {
+    flex-wrap: wrap;
+  }
+
+  .avatar-container svg {
+    width: 64px;
+    height: 96px;
+  }
+
+  .chart-wrapper {
+    min-height: 360px;
+  }
+}
+
+/* Make Explorer scales look like the profile page ones */
+.brush-root .track {
+  stroke: #C8DCD2;        /* pale neutral mint */
+  stroke-width: 4px;      /* thin and modern */
+}
+
+/* Rounded pill for selected ranges (Height / Weight) */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 2px 10px;
+  border-radius: 999px;
+
+  border: 1px solid rgba(0, 0, 0, 0.18);   /* soft outline */
+  background: rgba(255, 255, 255, 0.55);   /* light capsule background */
+
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-variant-numeric: tabular-nums;      /* nice aligned numbers */
+}
+
+/* stack Height/Weight label and selected range vertically */
+.filter-label-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* slightly smaller pill for the side labels if you want */
+.range-pill {
+  font-size: 0.8rem;
+  padding: 3px 10px;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Tooltip for pie slices */
+#tooltip {
+  position: fixed;
+  pointer-events: none;
+  opacity: 0;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 10px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.tip-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.tip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.spoon-text {
+  font-size: 18px;
+  font-weight: 700;
+  fill: darkgreen;
+}

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Macronutrient Explorer - Personalize Your Profile</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/profile.css">
 </head>
 <body>
     <div class="container">
@@ -17,7 +17,7 @@
         <div class="main-content">
             <!-- Avatar Section -->
             <div class="avatar-section">
-                <svg id="avatar-svg" width="320" height="480" viewBox="0 0 320 480"></svg>
+                <svg id="avatar-svg" width="320" height="360" viewBox="0 0 320 360"></svg>
                 <div class="avatar-stats">
                     Height: <span id="stat-height">170</span> cm, Weight: <span id="stat-weight">70</span> kg
                 </div>
@@ -51,12 +51,12 @@
                     </div>
                     <div class="input-container">
                         <div class="exact-input-wrapper" id="height-exact-wrapper">
-                            <input type="number" class="exact-input" id="height-exact" placeholder="170" min="150" max="200" value="170">
+                            <input type="number" class="exact-input" id="height-exact" placeholder="170" min="149" max="201" value="170">
                             <span class="input-unit">cm</span>
                         </div>
                         <div class="range-container" id="height-range"></div>
                         <div class="value-display" id="height-display">170 cm</div>
-                        <div class="error-message" id="height-error">Please enter a height between 150-200 cm</div>
+                        <div class="error-message" id="height-error">Please enter a height between 149-201 cm</div>
                     </div>
                 </div>
 
@@ -71,12 +71,12 @@
                     </div>
                     <div class="input-container">
                         <div class="exact-input-wrapper" id="weight-exact-wrapper">
-                            <input type="number" class="exact-input" id="weight-exact" placeholder="70" min="40" max="130" value="70">
+                            <input type="number" class="exact-input" id="weight-exact" placeholder="70" min="39" max="131" value="70">
                             <span class="input-unit">kg</span>
                         </div>
                         <div class="range-container" id="weight-range"></div>
                         <div class="value-display" id="weight-display">70 kg</div>
-                        <div class="error-message" id="weight-error">Please enter a weight between 40-130 kg</div>
+                        <div class="error-message" id="weight-error">Please enter a weight between 39-131 kg</div>
                     </div>
                 </div>
 
@@ -86,6 +86,7 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="js/profile_page.js"></script>
 </body>
 </html>
