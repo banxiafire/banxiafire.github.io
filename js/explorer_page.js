@@ -728,9 +728,9 @@
         .attr("text-anchor", "middle")
         .attr("dy", "1.1em")
         .style("font-size", "12px")
-        .text(`${key} per meal`);
+        .text(`calories per meal`);
 
-      histTitle.text(`Frequency distribution for ${key}`);
+      histTitle.text(`Frequency distribution for ${key} (in calories)`);
     }
 
     function onSliceClick(d) {
