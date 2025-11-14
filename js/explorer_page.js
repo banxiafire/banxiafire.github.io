@@ -433,6 +433,12 @@
 
       const kcalAgg = aggregate(data, "Calories", state.agg);
 
+      // Save macro targets to localStorage for bowl builder
+      localStorage.setItem('target_carbs', Math.round(aggVal("Carbs")).toString());
+      localStorage.setItem('target_protein', Math.round(aggVal("Proteins")).toString());
+      localStorage.setItem('target_fat', Math.round(aggVal("Fats")).toString());
+      localStorage.setItem('target_calories', Math.round(kcalAgg).toString());
+
       // Update spoon text: mean or median calories depending on Analysis Options
       if (typeof spoonText !== "undefined") {
         if (!data.length || !isFinite(kcalAgg)) {

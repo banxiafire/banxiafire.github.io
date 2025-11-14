@@ -1,8 +1,8 @@
-// ====== Profile Page JS (was first IIFE in merged file) ======
+
 (function () {
   if (!document.getElementById('avatar-svg')) return;
   try {
-    // ========== STATE MANAGEMENT ==========
+
     const state = {
       gender: 'male',
       height: 170,
@@ -19,13 +19,12 @@
     const WEIGHT_RANGE = { min: 39, max: 131 };
     const ANIMATION_DURATION = 450;
 
-    // ========== D3 SETUP ==========
     const svg = d3.select('#avatar-svg');
     const avatarGroup = svg.append('g').attr('class', 'avatar-group');
 
     let maleAvatar, femaleAvatar;
 
-    // ========== ORGANIC AVATAR CREATION with SMOOTH CURVES ==========
+
 
     function createAvatar(gender) {
       const isMale = gender === 'male';
@@ -66,8 +65,6 @@
         .attr('in', 'SourceGraphic')
         .attr('stdDeviation', '0.5');
 
-      // Order matters for layering!
-      // 1. Shadow layer (optional)
       group.append('ellipse')
         .attr('class', 'shadow')
         .attr('cx', 160)
@@ -77,7 +74,7 @@
         .attr('fill', '#000')
         .attr('opacity', 0.1);
 
-      // 2. Back arm (behind body)
+      
       group.append('rect')
         .attr('class', 'arm-back')
         .attr('fill', `url(#skin-gradient-${gender})`)
@@ -86,7 +83,7 @@
         .attr('width', 0)
         .attr('height', 0);
 
-      // 3. Legs
+      
       group.append('rect')
         .attr('class', 'leg-left')
         .attr('fill', `url(#skin-gradient-${gender})`)
@@ -103,7 +100,7 @@
         .attr('width', 0)
         .attr('height', 0);
 
-      // 4. Main body/torso
+      
       group.append('rect')
         .attr('class', 'body-torso')
         .attr('fill', `url(#skin-gradient-${gender})`)
@@ -112,7 +109,7 @@
         .attr('width', 0)
         .attr('height', 0);
 
-      // 5. Front arm
+      
       group.append('rect')
         .attr('class', 'arm-front')
         .attr('fill', `url(#skin-gradient-${gender})`)
@@ -121,7 +118,7 @@
         .attr('width', 0)
         .attr('height', 0);
 
-      // 6. Clothing layers
+      
       group.append('rect')
         .attr('class', 'shirt')
         .attr('fill', isMale ? '#7C9FB0' : '#6E8B3D')
@@ -140,7 +137,7 @@
         .attr('width', 0)
         .attr('height', 0);
 
-      // Sleeves
+      
       group.append('rect')
         .attr('class', 'sleeve-left')
         .attr('fill', isMale ? '#7C9FB0' : '#6E8B3D')
@@ -159,7 +156,7 @@
         .attr('width', 0)
         .attr('height', 0);
 
-      // 7. Head
+      
       group.append('path')
         .attr('class', 'neck')
         .attr('d', '')
@@ -173,7 +170,7 @@
         .attr('height', 0)
         .attr('fill', `url(#skin-gradient-${gender})`);
 
-      // 8. Hair
+      
       group.append('rect')
         .attr('class', 'hair')
         .attr('fill', isMale ? '#6B4423' : '#E69138')
@@ -200,7 +197,7 @@
           .attr('height', 0);
       }
 
-      // 9. Facial features
+      
       const eyeGroup = group.append('g').attr('class', 'eyes');
 
       eyeGroup.append('rect')
@@ -253,7 +250,7 @@
         .attr('fill', '#5A3A1A')
         .attr('opacity', 0.6);
 
-      // 10. Shoes
+      
       group.append('rect')
         .attr('class', 'shoe-left')
         .attr('fill', '#333')
@@ -273,8 +270,7 @@
       return group;
     }
 
-    // ========== MINECRAFT AVATAR (STEVE / ALEX) ==========
-
+    
     function updateAvatar(animate = true) {
       const duration = animate ? 450 : 0;
       const easing = d3.easeCubicInOut;
@@ -472,7 +468,7 @@
       d3.select('#stat-weight').text(state.weight);
     }
 
-    // ========== GENDER SWITCHING ==========
+    
     function switchGender(animate = true) {
       const duration = animate ? ANIMATION_DURATION : 0;
 
@@ -491,7 +487,7 @@
       }
     }
 
-    // ========== BRUSH FOR RANGE SELECTION ==========
+    
     function createBrush(containerId, min, max, defaultMin, defaultMax, unit, onBrush) {
       const container = d3.select(`#${containerId}`);
       container.html('');
@@ -596,7 +592,7 @@
       );
     }
 
-    // ========== EVENT HANDLERS ==========
+    
 
     d3.selectAll('.gender-btn').on('click', function () {
       state.gender = d3.select(this).attr('data-gender');
@@ -740,7 +736,7 @@
       window.location.href = 'explorer_page.html';
     });
 
-    // ========== INITIALIZATION ==========
+    
     maleAvatar = createAvatar('male');
     femaleAvatar = createAvatar('female');
     maleAvatar.style('opacity', 1);
