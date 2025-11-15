@@ -1,7 +1,4 @@
-// ============ BOWL BUILDER JS (D3-Powered) ============
-
 (function () {
-  // ====== STATE ======
   const state = {
     ingredients: [], // All available ingredients
     bowl: [], // Ingredients currently in bowl
@@ -21,27 +18,20 @@
     simulation: null // D3 force simulation
   };
 
-  // Bowl dimensions
+  // Dimensions
   const centerX = 250;
   const centerY = 250;
   const bowlRadius = 180;
 
-  // ====== LOAD USER PROFILE ======
   function loadUserProfile() {
     const gender = localStorage.getItem('gender') || 'male';
     const height = localStorage.getItem('height') || '170';
     const weight = localStorage.getItem('weight') || '70';
 
-    // Calculate rough daily targets (simplified formulas)
-    const bmr = gender === 'male'
-      ? 10 * weight + 6.25 * height - 5 * 30 + 5
-      : 10 * weight + 6.25 * height - 5 * 30 - 161;
-
-    const dailyCalories = Math.round(bmr * 1.5); // Moderate activity level
-    state.targets.calories = dailyCalories;
-    state.targets.carbs = Math.round(dailyCalories * 0.5 / 4); // 50% from carbs
-    state.targets.protein = Math.round(dailyCalories * 0.25 / 4); // 25% from protein
-    state.targets.fat = Math.round(dailyCalories * 0.25 / 9); // 25% from fat
+    state.targets.carbs = parseInt(localStorage.getItem('target_carbs')) || 250;
+    state.targets.protein = parseInt(localStorage.getItem('target_protein')) || 100;
+    state.targets.fat = parseInt(localStorage.getItem('target_fat')) || 65;
+    state.targets.calories = parseInt(localStorage.getItem('target_calories')) || 1800;
 
     // Update UI with D3
     d3.select('#carbs-target').text(state.targets.carbs);
@@ -54,7 +44,6 @@
     );
   }
 
-  // ====== LOAD INGREDIENTS ======
   async function loadIngredients() {
     try {
       const data = await d3.csv('data/ingredients.csv');
@@ -74,7 +63,7 @@
     }
   }
 
-  // ====== RENDER INGREDIENT SHELVES WITH D3 ======
+
   function renderIngredientShelves() {
     const categories = {
       base: 'bases-list',
@@ -132,7 +121,7 @@
     });
   }
 
-  // ====== SETUP FORCE SIMULATION ======
+
   function setupForceSimulation() {
     state.simulation = d3.forceSimulation()
       .force('x', d3.forceX(centerX).strength(0.05))
@@ -162,7 +151,7 @@
     };
   }
 
-  // Update positions on simulation tick
+
   function ticked() {
     const group = d3.select('#ingredients-group');
 
@@ -170,7 +159,7 @@
       .attr('transform', d => `translate(${d.x}, ${d.y})`);
   }
 
-  // ====== SETUP DROP ZONE ======
+
   function setupDropZone() {
     const dropZone = d3.select('#bowl-drop-zone');
 
@@ -199,7 +188,7 @@
     });
   }
 
-  // ====== ADD INGREDIENT TO BOWL ======
+
   function addIngredientToBowl(ingredient) {
     const bowlItem = {
       id: state.nextId++,
@@ -225,14 +214,14 @@
     hideBowlHint();
   }
 
-  // ====== UPDATE TOTALS ======
+
   function updateTotals() {
     state.totals.carbs = d3.sum(state.bowl, d => d.carbs);
     state.totals.protein = d3.sum(state.bowl, d => d.protein);
     state.totals.fat = d3.sum(state.bowl, d => d.fat);
     state.totals.calories = d3.sum(state.bowl, d => d.calories);
 
-    // Update totals display with D3 transitions
+
     d3.select('#total-carbs')
       .transition()
       .duration(300)
@@ -266,7 +255,7 @@
       });
   }
 
-  // ====== UPDATE METERS WITH D3 ======
+
   function updateMeters() {
     const metrics = ['carbs', 'protein', 'fat', 'calories'];
 
@@ -307,7 +296,6 @@
       }
     });
 
-    // Check if all macros are in good range (90-110%)
     const allGood = metrics.every(metric => {
       const percentage = (state.totals[metric] / state.targets[metric]) * 100;
       return percentage >= 90 && percentage <= 110;
@@ -321,7 +309,7 @@
     }
   }
 
-  // ====== RENDER BOWL VISUAL WITH D3 FORCE SIMULATION ======
+
   function renderBowlVisual() {
     const group = d3.select('#ingredients-group');
 
@@ -390,12 +378,12 @@
       }
     });
 
-    // UPDATE + ENTER - restart simulation
+  
     state.simulation.nodes(state.bowl);
     state.simulation.alpha(0.3).restart();
   }
 
-  // ====== D3 DRAG HANDLERS ======
+
   function dragStarted(event, d) {
     if (!event.active) state.simulation.alphaTarget(0.3).restart();
     d.fx = d.x;
@@ -415,9 +403,12 @@
     d3.select(this).classed('dragging', false);
   }
 
-  // ====== RENDER BOWL CONTENTS LIST WITH D3 ======
+
   function renderBowlContents() {
     const container = d3.select('#contents-list');
+
+
+    container.selectAll('.empty-message').remove();
 
     if (state.bowl.length === 0) {
       container.html('<p class="empty-message">Bowl is empty</p>');
@@ -469,7 +460,7 @@
       .style('transform', 'translateX(0)');
   }
 
-  // ====== REMOVE INGREDIENT FROM BOWL ======
+
   function removeIngredientFromBowl(id) {
     state.bowl = state.bowl.filter(item => item.id !== id);
     updateTotals();
@@ -482,7 +473,7 @@
     }
   }
 
-  // ====== CLEAR BOWL ======
+
   function clearBowl() {
     state.bowl = [];
     updateTotals();
@@ -492,7 +483,7 @@
     showBowlHint();
   }
 
-  // ====== RANDOM BOWL (SURPRISE ME) ======
+
   function generateRandomBowl() {
     clearBowl();
 
@@ -522,7 +513,6 @@
     addIngredientToBowl(randomFat);
   }
 
-  // ====== BOWL HINT ======
   function hideBowlHint() {
     d3.select('#bowl-hint').classed('hidden', true);
   }
@@ -531,20 +521,20 @@
     d3.select('#bowl-hint').classed('hidden', false);
   }
 
-  // ====== NAVIGATION ======
+
   function setupNavigation() {
     d3.select('#back-to-explorer').on('click', () => {
       window.location.href = 'explorer_page.html';
     });
   }
 
-  // ====== SETUP BUTTONS ======
+
   function setupButtons() {
     d3.select('#clear-bowl').on('click', clearBowl);
     d3.select('#random-bowl').on('click', generateRandomBowl);
   }
 
-  // ====== SETUP CATEGORY TABS WITH D3 ======
+
   function setupCategoryTabs() {
     const tabs = d3.selectAll('.category-tab');
     const grids = d3.selectAll('.ingredient-grid');
@@ -568,7 +558,7 @@
     });
   }
 
-  // ====== INITIALIZATION ======
+
   async function init() {
     loadUserProfile();
     await loadIngredients();
