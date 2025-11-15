@@ -67,6 +67,14 @@ h1 {
   gap: 1.8rem;
 }
 
+.explorer-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+  width: 100%;
+}
+
 /* Left + right columns */
 .left-column,
 .right-column {
@@ -529,9 +537,9 @@ svg .tick line {
   stroke-width: 0.5px;
 }
 
-/* Shrink entire layout by 20% on MacBook Air 13" screens */
+/* Shrink main layout (but keep tooltips aligned) on MacBook Air 13" screens */
 @media (min-width: 1200px) and (max-width: 1500px) {
-  body.explorer-layout {
+  .explorer-layout .explorer-wrapper {
     transform: scale(0.8);
     transform-origin: top center;
   }
